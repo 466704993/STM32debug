@@ -4,10 +4,11 @@
 #include "math.h"
 #include "mpu9250.h"
 
+extern I2C_HandleTypeDef hi2c1;
 
-float q[4]; //  四元数 
-float gyrof[3];  //  X/Y/Z 角速度 
-float accelf[3]; //  X/Y/Z 加速度  
+float q[4]; //  鍥涘厓鏁�
+float gyrof[3];  //  X/Y/Z 瑙掗�熷害
+float accelf[3]; //  X/Y/Z 鍔犻�熷害
 float yprf[3];   //  yaw/pitch/roll 
 float mag[3];
 unsigned char dmpdatas[42];
@@ -199,34 +200,34 @@ const unsigned char dmpcfgupddata[239] = {
     0x00,   0x60,   0x04,   0x00, 0x40, 0x00, 0x00
 };
 
-static HAL_StatusTypeDef IICwriteByte(u16 DevAddress,u16 MemAddress , u8 value)
+static HAL_StatusTypeDef IICwriteByte(uint16_t DevAddress,uint16_t MemAddress , uint8_t value)
 {
 	HAL_StatusTypeDef ret = HAL_OK;
-	ret = HAL_I2C_Mem_Write(I2C1, DevAddress, MemAddress, &value, 1, 1000);
+	ret = HAL_I2C_Mem_Write(&hi2c1, DevAddress, MemAddress,I2C_MEMADD_SIZE_8BIT, &value, 1, 1000);
 	return ret;
 }
 
-static HAL_StatusTypeDef IICreadBytes(u16 DevAddress,u16 MemAddress ,u16 Size, u8 *pData)
+static HAL_StatusTypeDef IICreadBytes(uint16_t DevAddress,uint16_t MemAddress ,uint16_t Size, uint8_t *pData)
 {
-	return HAL_I2C_Mem_Read(I2C1, DevAddress, MemAddress, pData, Size, 1000);
+	return HAL_I2C_Mem_Read(&hi2c1, DevAddress, MemAddress,I2C_MEMADD_SIZE_8BIT, pData, Size, 1000);
 }
 
-static u8 IIC_ReadOneByte(u16 DevAddress,u16 MemAddress)
+static uint8_t IIC_ReadOneByte(uint16_t DevAddress,uint16_t MemAddress)
 {
-	u8 value;
-	HAL_I2C_Mem_Read(I2C1, DevAddress, MemAddress, &value, 1, 1000);
+	uint8_t value;
+	HAL_I2C_Mem_Read(&hi2c1, DevAddress, MemAddress,I2C_MEMADD_SIZE_8BIT, &value, 1, 1000);
 	return value;
 }
 
-static HAL_StatusTypeDef IICwriteBit(u16 DevAddress,u16 MemAddress,u8 bit,BitAction BitVal)
+static HAL_StatusTypeDef IICwriteBit(uint16_t DevAddress,uint16_t MemAddress,uint8_t bit,uint8_t BitVal)
 {
-	u8 value;
+	uint8_t value;
 	HAL_StatusTypeDef ret = HAL_OK;
 
-	ret = HAL_I2C_Mem_Read(I2C1 , DevAddress, MemAddress, &value, 1, 1000);
+	ret = HAL_I2C_Mem_Read(&hi2c1 , DevAddress, MemAddress, I2C_MEMADD_SIZE_8BIT,&value, 1, 1000);
 	if(ret == HAL_OK)
 	{
-		if(Bit_RESET == BitVal)
+		if(0 == BitVal)
 		{
 			value = value & (0xfe << bit);
 		}
@@ -234,7 +235,7 @@ static HAL_StatusTypeDef IICwriteBit(u16 DevAddress,u16 MemAddress,u8 bit,BitAct
 		{
 			value = value | (0x01 << bit);
 		}
-		ret = HAL_I2C_Mem_Write(I2C1, DevAddress, MemAddress, &value, 1, 1000);
+		ret = HAL_I2C_Mem_Write(&hi2c1, DevAddress, MemAddress, I2C_MEMADD_SIZE_8BIT,&value, 1, 1000);
 		return ret;
 	}
 	return HAL_ERROR;
@@ -242,14 +243,14 @@ static HAL_StatusTypeDef IICwriteBit(u16 DevAddress,u16 MemAddress,u8 bit,BitAct
 
 
 
-void Delayms(u32 m)
+void Delayms(uint32_t m)
 {
-  u32 i;
+  uint32_t i;
   for(; m != 0; m--)	
        for (i=0; i<6666; i++);
 }
 
-//读取DMP FIFO 的值，保存在dmpdatas 数组中
+//璇诲彇DMP FIFO 鐨勫�硷紝淇濆瓨鍦╠mpdatas 鏁扮粍涓�
 void readdmp(void)
 {
 	IICreadBytes(GYRO_ADDRESS,0x74,42,dmpdatas);
@@ -270,10 +271,10 @@ long getdmplong(unsigned char address)
 }
 
 // **********************************************************************
-// 根据FIFO中的值计算四元数，计算yaw,pitch,roll  计算加速度，角速度
+// 鏍规嵁FIFO涓殑鍊艰绠楀洓鍏冩暟锛岃绠梱aw,pitch,roll  璁＄畻鍔犻�熷害锛岃閫熷害
 // **********************************************************************
 
-//计算四元数
+//璁＄畻鍥涘厓鏁�
 void getquaternion(void)
 {    
   q[0] = getdmplong(0)/1073741824.0;  
@@ -282,10 +283,10 @@ void getquaternion(void)
   q[3] = getdmplong(12)/1073741824.0;
 }
 
-//计算yaw、pitch、roll(函数中包含了四元数，无需再调用之前再计算四元数)
+//璁＄畻yaw銆乸itch銆乺oll(鍑芥暟涓寘鍚簡鍥涘厓鏁帮紝鏃犻渶鍐嶈皟鐢ㄤ箣鍓嶅啀璁＄畻鍥涘厓鏁�)
 void getyawpitchroll(void)
 {
-	getquaternion();//计算四元数
+	getquaternion();//璁＄畻鍥涘厓鏁�
  
 	yprf[0]=-atan2((2.0*(q[0]*q[3] + q[1]*q[2])),
 	                     (1 - 2.0*(q[2]*q[2] + q[3]*q[3])))*57.3;  //yaw
@@ -296,7 +297,7 @@ void getyawpitchroll(void)
 	                       (1 - 2.0*(q[1]*q[1] + q[2]*q[2])))*57.3; //roll
 }
 
-//计算加速度和角速度
+//璁＄畻鍔犻�熷害鍜岃閫熷害
 void getAcc_gyro()
 {
 	uint8_t buf[20];
@@ -311,7 +312,7 @@ void getAcc_gyro()
 }
 // *********************************************************
 
-//获取 X/Y/Z 磁力计值
+//鑾峰彇 X/Y/Z 纾佸姏璁″��
 void getmag()
 {
 	uint8_t BUF[10];
@@ -413,7 +414,7 @@ uint16_t MPU9250_getFIFOCount(void)
 	return (((uint16_t)buffer[0]) << 8) | buffer[1];
 }
 
-// 初始化MPU9250并且开启DMP	
+// 鍒濆鍖朚PU9250骞朵笖寮�鍚疍MP
 void Init_MPU9250_With_DMP(void)
 { 
 	IICwriteByte(GYRO_ADDRESS,MPU9250_RA_PWR_MGMT_1, 0x80);//pw1	
@@ -426,7 +427,7 @@ void Init_MPU9250_With_DMP(void)
 	IICwriteByte(GYRO_ADDRESS,MPU9250_RA_GYRO_CONFIG, 0x18);//+- 2000
 	IICwriteByte(GYRO_ADDRESS,MPU9250_RA_ACCEL_CONFIG, 0x10);//+- 4g
 
-// **********************DMP 的配置(开启DMP ，设置DMP FIFO)***************************
+// **********************DMP 鐨勯厤缃�(寮�鍚疍MP 锛岃缃瓺MP FIFO)***************************
 	loadfirmware(); 
 	loadcfgupd();
 	

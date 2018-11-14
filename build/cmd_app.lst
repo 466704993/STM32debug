@@ -1,31 +1,30 @@
-ARM GAS  /tmp/ccQnxdM2.s 			page 1
+ARM GAS  /tmp/ccIRRSlb.s 			page 1
 
 
-   1              		.syntax unified
-   2              		.cpu cortex-m3
-   3              		.fpu softvfp
-   4              		.eabi_attribute 20, 1
-   5              		.eabi_attribute 21, 1
-   6              		.eabi_attribute 23, 3
-   7              		.eabi_attribute 24, 1
-   8              		.eabi_attribute 25, 1
-   9              		.eabi_attribute 26, 1
-  10              		.eabi_attribute 30, 1
-  11              		.eabi_attribute 34, 1
-  12              		.eabi_attribute 18, 4
-  13              		.thumb
-  14              		.file	"cmd_app.c"
-  15              		.text
-  16              	.Ltext0:
-  17              		.cfi_sections	.debug_frame
-  18              		.section	.text.cmd_add_Init,"ax",%progbits
-  19              		.align	2
-  20              		.global	cmd_add_Init
-  21              		.thumb
-  22              		.thumb_func
-  24              	cmd_add_Init:
-  25              	.LFB64:
-  26              		.file 1 "Src/cmd_app.c"
+   1              		.cpu cortex-m3
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 1
+   9              		.eabi_attribute 34, 1
+  10              		.eabi_attribute 18, 4
+  11              		.file	"cmd_app.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.cmd_add_Init,"ax",%progbits
+  16              		.align	1
+  17              		.global	cmd_add_Init
+  18              		.syntax unified
+  19              		.thumb
+  20              		.thumb_func
+  21              		.fpu softvfp
+  23              	cmd_add_Init:
+  24              	.LFB65:
+  25              		.file 1 "Src/cmd_app.c"
    1:Src/cmd_app.c **** /*
    2:Src/cmd_app.c ****  * cmd_app.c
    3:Src/cmd_app.c ****  *
@@ -58,10 +57,10 @@ ARM GAS  /tmp/ccQnxdM2.s 			page 1
   30:Src/cmd_app.c **** 		i2c_data.rwType = READ_CMD;
   31:Src/cmd_app.c **** 	}
   32:Src/cmd_app.c **** 
-ARM GAS  /tmp/ccQnxdM2.s 			page 2
-
-
   33:Src/cmd_app.c **** 	i2c_data.devAddr 	= com_str_to_int16(argv[1]);
+ARM GAS  /tmp/ccIRRSlb.s 			page 2
+
+
   34:Src/cmd_app.c **** 	i2c_data.offsetAddr = com_str_to_int16(argv[2]);
   35:Src/cmd_app.c **** 	i2c_data.readData   = databuff;
   36:Src/cmd_app.c **** 	i2c_data.writeData  = databuff;
@@ -118,33 +117,39 @@ ARM GAS  /tmp/ccQnxdM2.s 			page 1
   87:Src/cmd_app.c **** 		}
   88:Src/cmd_app.c **** 	}
   89:Src/cmd_app.c **** 	return result;
-ARM GAS  /tmp/ccQnxdM2.s 			page 3
-
-
   90:Src/cmd_app.c **** }
+ARM GAS  /tmp/ccIRRSlb.s 			page 3
+
+
   91:Src/cmd_app.c **** 
   92:Src/cmd_app.c **** void cmd_add_Init(void)
   93:Src/cmd_app.c **** {
-  27              		.loc 1 93 0
-  28              		.cfi_startproc
-  29              		@ args = 0, pretend = 0, frame = 0
-  30              		@ frame_needed = 0, uses_anonymous_args = 0
-  31              		@ link register save eliminated.
-  32 0000 7047     		bx	lr
-  33              		.cfi_endproc
-  34              	.LFE64:
-  36 0002 00BF     		.text
-  37              	.Letext0:
-  38              		.file 2 "/usr/include/newlib/machine/_default_types.h"
-  39              		.file 3 "/usr/include/newlib/sys/_stdint.h"
-  40              		.file 4 "Drivers/CMSIS/Include/core_cm3.h"
-ARM GAS  /tmp/ccQnxdM2.s 			page 4
+  26              		.loc 1 93 0
+  27              		.cfi_startproc
+  28              		@ args = 0, pretend = 0, frame = 0
+  29              		@ frame_needed = 0, uses_anonymous_args = 0
+  30              		@ link register save eliminated.
+  31 0000 7047     		bx	lr
+  32              		.cfi_endproc
+  33              	.LFE65:
+  35              		.text
+  36              	.Letext0:
+  37              		.file 2 "/usr/include/newlib/machine/_default_types.h"
+  38              		.file 3 "/usr/include/newlib/sys/lock.h"
+  39              		.file 4 "/usr/include/newlib/sys/_types.h"
+  40              		.file 5 "/usr/lib/gcc/arm-none-eabi/6.3.1/include/stddef.h"
+  41              		.file 6 "/usr/include/newlib/sys/reent.h"
+  42              		.file 7 "/usr/include/newlib/stdlib.h"
+  43              		.file 8 "/usr/include/newlib/sys/_stdint.h"
+  44              		.file 9 "Drivers/CMSIS/Include/core_cm3.h"
+  45              		.file 10 "Drivers/CMSIS/Device/ST/STM32F1xx/Include/system_stm32f1xx.h"
+ARM GAS  /tmp/ccIRRSlb.s 			page 4
 
 
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 cmd_app.c
-     /tmp/ccQnxdM2.s:19     .text.cmd_add_Init:0000000000000000 $t
-     /tmp/ccQnxdM2.s:24     .text.cmd_add_Init:0000000000000000 cmd_add_Init
+     /tmp/ccIRRSlb.s:16     .text.cmd_add_Init:0000000000000000 $t
+     /tmp/ccIRRSlb.s:23     .text.cmd_add_Init:0000000000000000 cmd_add_Init
                      .debug_frame:0000000000000010 $d
 
 NO UNDEFINED SYMBOLS
