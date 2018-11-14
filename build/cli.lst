@@ -1,0 +1,3088 @@
+ARM GAS  /tmp/ccfikaZY.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"cli.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text.cli_deinit,"ax",%progbits
+  19              		.align	2
+  20              		.thumb
+  21              		.thumb_func
+  23              	cli_deinit:
+  24              	.LFB67:
+  25              		.file 1 "Src/cli.c"
+   1:Src/cli.c     **** /*
+   2:Src/cli.c     ****  * cli.c
+   3:Src/cli.c     ****  *
+   4:Src/cli.c     ****  *  Created on: Nov 14, 2018
+   5:Src/cli.c     ****  *      Author: bitohw03
+   6:Src/cli.c     ****  */
+   7:Src/cli.c     **** 
+   8:Src/cli.c     **** #include "stm32f1xx_hal.h"
+   9:Src/cli.c     **** #include <string.h>
+  10:Src/cli.c     **** #include <stdio.h>
+  11:Src/cli.c     **** #include <stdlib.h>
+  12:Src/cli.c     **** #include <stdarg.h>  //for va_list ap
+  13:Src/cli.c     **** #include "cli.h"
+  14:Src/cli.c     **** #include "common.h"
+  15:Src/cli.c     **** 
+  16:Src/cli.c     **** 
+  17:Src/cli.c     **** #define UART_BUFF_LEN 100
+  18:Src/cli.c     **** 
+  19:Src/cli.c     **** static bit label = false;
+  20:Src/cli.c     **** GET_CMD_PARAM_INFO_T gCmdParamInfo;
+  21:Src/cli.c     **** 
+  22:Src/cli.c     **** struct
+  23:Src/cli.c     **** {
+  24:Src/cli.c     **** 	char 			cHandleBuf[UART_BUFF_LEN];
+  25:Src/cli.c     **** 	char 			*read_ptr;     //read pointer
+  26:Src/cli.c     **** 	char 			*write_ptr;	   //write pointer
+  27:Src/cli.c     **** }gUsbParamInfo;
+  28:Src/cli.c     **** 
+  29:Src/cli.c     **** struct
+  30:Src/cli.c     **** {
+  31:Src/cli.c     **** 	CLI_Command_List_t command[100];
+  32:Src/cli.c     **** 	CLI_Command_List_t parameter[100];
+  33:Src/cli.c     **** }clilist;
+ARM GAS  /tmp/ccfikaZY.s 			page 2
+
+
+  34:Src/cli.c     **** 
+  35:Src/cli.c     **** static void vOutputString(char *str)
+  36:Src/cli.c     **** {
+  37:Src/cli.c     **** 	printf("%s",str);
+  38:Src/cli.c     **** }
+  39:Src/cli.c     **** static void vOutputChar(char ch)
+  40:Src/cli.c     **** {
+  41:Src/cli.c     **** 	printf("%c",ch);
+  42:Src/cli.c     **** }
+  43:Src/cli.c     **** char vGetchar(uint16_t time)
+  44:Src/cli.c     **** {
+  45:Src/cli.c     **** 		return read_cInput(time);
+  46:Src/cli.c     **** }
+  47:Src/cli.c     **** void prvUARTCommandConsoleTask(void const *pvParameters)
+  48:Src/cli.c     **** {
+  49:Src/cli.c     **** 	CLI_info_init();  //CLI ��ʼ��
+  50:Src/cli.c     **** 	while(1)
+  51:Src/cli.c     **** 	{
+  52:Src/cli.c     **** 		CLI_event_handle(); //CLI�ַ�����poll
+  53:Src/cli.c     **** //		vTaskDelay(30);
+  54:Src/cli.c     **** 	}
+  55:Src/cli.c     **** }
+  56:Src/cli.c     **** 
+  57:Src/cli.c     **** static void cli_deinit() //�����ն�
+  58:Src/cli.c     **** {
+  26              		.loc 1 58 0
+  27              		.cfi_startproc
+  28              		@ args = 0, pretend = 0, frame = 0
+  29              		@ frame_needed = 0, uses_anonymous_args = 0
+  30              		@ link register save eliminated.
+  59:Src/cli.c     **** 	gCmdParamInfo.cmdBufTail   = gCmdParamInfo.cmdBuf;
+  31              		.loc 1 59 0
+  32 0000 044B     		ldr	r3, .L2
+  33 0002 03F5B072 		add	r2, r3, #352
+  34 0006 5A60     		str	r2, [r3, #4]
+  60:Src/cli.c     **** 	gCmdParamInfo.cmdBufCursor = gCmdParamInfo.cmdBuf;
+  35              		.loc 1 60 0
+  36 0008 9A60     		str	r2, [r3, #8]
+  61:Src/cli.c     **** 	gCmdParamInfo.cmdBuf[0] ='\0';
+  37              		.loc 1 61 0
+  38 000a 0022     		movs	r2, #0
+  39 000c 83F86021 		strb	r2, [r3, #352]
+  40 0010 7047     		bx	lr
+  41              	.L3:
+  42 0012 00BF     		.align	2
+  43              	.L2:
+  44 0014 00000000 		.word	gCmdParamInfo
+  45              		.cfi_endproc
+  46              	.LFE67:
+  48              		.section	.text.vOutputString,"ax",%progbits
+  49              		.align	2
+  50              		.thumb
+  51              		.thumb_func
+  53              	vOutputString:
+  54              	.LFB63:
+  36:Src/cli.c     **** 	printf("%s",str);
+  55              		.loc 1 36 0
+ARM GAS  /tmp/ccfikaZY.s 			page 3
+
+
+  56              		.cfi_startproc
+  57              		@ args = 0, pretend = 0, frame = 0
+  58              		@ frame_needed = 0, uses_anonymous_args = 0
+  59              	.LVL0:
+  60 0000 08B5     		push	{r3, lr}
+  61              	.LCFI0:
+  62              		.cfi_def_cfa_offset 8
+  63              		.cfi_offset 3, -8
+  64              		.cfi_offset 14, -4
+  65 0002 0146     		mov	r1, r0
+  37:Src/cli.c     **** }
+  66              		.loc 1 37 0
+  67 0004 0148     		ldr	r0, .L6
+  68              	.LVL1:
+  69 0006 FFF7FEFF 		bl	printf
+  70              	.LVL2:
+  71 000a 08BD     		pop	{r3, pc}
+  72              	.L7:
+  73              		.align	2
+  74              	.L6:
+  75 000c 00000000 		.word	.LC0
+  76              		.cfi_endproc
+  77              	.LFE63:
+  79              		.section	.text.prvDispHelpConfig,"ax",%progbits
+  80              		.align	2
+  81              		.thumb
+  82              		.thumb_func
+  84              	prvDispHelpConfig:
+  85              	.LFB78:
+  62:Src/cli.c     **** }
+  63:Src/cli.c     **** 
+  64:Src/cli.c     **** static char *CLIGetParameter(char *str,uint8_t num)  //�ȶԵ����ַ�����ʧ�ܷ�
+  65:Src/cli.c     **** {
+  66:Src/cli.c     **** 	char *dst = str;
+  67:Src/cli.c     **** 	uint8_t i = 0;
+  68:Src/cli.c     **** 	while(*dst == ' ') dst++;
+  69:Src/cli.c     **** 	if(num == 0 && *dst)
+  70:Src/cli.c     **** 	{
+  71:Src/cli.c     **** 		return dst;
+  72:Src/cli.c     **** 	}
+  73:Src/cli.c     **** 	while(*dst)
+  74:Src/cli.c     **** 	{
+  75:Src/cli.c     **** 		if(*dst == '[')
+  76:Src/cli.c     **** 		{
+  77:Src/cli.c     **** 			dst = strchr(dst, ']') + 1;
+  78:Src/cli.c     **** 			if(dst == NULL)
+  79:Src/cli.c     **** 			{
+  80:Src/cli.c     **** 				vOutputString("\r\n Instruction standard error, please contact software processing!");
+  81:Src/cli.c     **** 				return NULL;
+  82:Src/cli.c     **** 			}
+  83:Src/cli.c     **** 		}
+  84:Src/cli.c     **** 		else if(*dst++ == ' ')
+  85:Src/cli.c     **** 		{
+  86:Src/cli.c     **** 			while(*dst == ' ') dst++;
+  87:Src/cli.c     **** 			i++;
+  88:Src/cli.c     **** 			if(i == num && *dst)
+  89:Src/cli.c     **** 			{
+ARM GAS  /tmp/ccfikaZY.s 			page 4
+
+
+  90:Src/cli.c     **** 				return dst;
+  91:Src/cli.c     **** 			}
+  92:Src/cli.c     **** 		}
+  93:Src/cli.c     **** 	}
+  94:Src/cli.c     **** 	return NULL;
+  95:Src/cli.c     **** }
+  96:Src/cli.c     **** 
+  97:Src/cli.c     **** static void cli_format_cmd(char *strtop,char **parameter)  //�ָ��ַ���
+  98:Src/cli.c     **** {
+  99:Src/cli.c     **** 	char *strend;
+ 100:Src/cli.c     **** 
+ 101:Src/cli.c     **** 	gCmdParamInfo.argc = 0;
+ 102:Src/cli.c     **** 	gCmdParamInfo.argv[0] = gCmdParamInfo.argvBuf;
+ 103:Src/cli.c     **** 	do
+ 104:Src/cli.c     **** 	{
+ 105:Src/cli.c     **** 		strend = strchr(strtop,' ');
+ 106:Src/cli.c     **** 		if(strend == NULL)
+ 107:Src/cli.c     **** 		{
+ 108:Src/cli.c     **** 			if(strncmp(strtop,"-all",4))
+ 109:Src/cli.c     **** 			{
+ 110:Src/cli.c     **** 				strcpy(gCmdParamInfo.argv[gCmdParamInfo.argc],strtop);
+ 111:Src/cli.c     **** 				*(gCmdParamInfo.argv[gCmdParamInfo.argc ++] + strlen(strtop)) = '\0';
+ 112:Src/cli.c     **** 				gCmdParamInfo.argv[gCmdParamInfo.argc] = gCmdParamInfo.argv[gCmdParamInfo.argc - 1] + strlen(st
+ 113:Src/cli.c     **** 			}
+ 114:Src/cli.c     **** 			else
+ 115:Src/cli.c     **** 			{
+ 116:Src/cli.c     **** 				*parameter = strtop + 1;
+ 117:Src/cli.c     **** 				parameter ++;
+ 118:Src/cli.c     **** 			}
+ 119:Src/cli.c     **** 		}
+ 120:Src/cli.c     **** 		else
+ 121:Src/cli.c     **** 		{
+ 122:Src/cli.c     **** 			if(strncmp(strtop,"-all",4))
+ 123:Src/cli.c     **** 			{
+ 124:Src/cli.c     **** 				strncpy(gCmdParamInfo.argv[gCmdParamInfo.argc],strtop,strend - strtop);
+ 125:Src/cli.c     **** 				*(gCmdParamInfo.argv[gCmdParamInfo.argc ++] + (strend - strtop)) = '\0';
+ 126:Src/cli.c     **** 				gCmdParamInfo.argv[gCmdParamInfo.argc] = gCmdParamInfo.argv[gCmdParamInfo.argc - 1] + (strend -
+ 127:Src/cli.c     **** 			}
+ 128:Src/cli.c     **** 			else
+ 129:Src/cli.c     **** 			{
+ 130:Src/cli.c     **** 				*parameter = strtop + 1;
+ 131:Src/cli.c     **** 				parameter ++;
+ 132:Src/cli.c     **** 			}
+ 133:Src/cli.c     **** 			strtop = strend + 1;
+ 134:Src/cli.c     **** 		}
+ 135:Src/cli.c     **** 	}
+ 136:Src/cli.c     **** 	while(strend);
+ 137:Src/cli.c     **** 	gCmdParamInfo.argv[gCmdParamInfo.argc][0] = '\0';
+ 138:Src/cli.c     **** }
+ 139:Src/cli.c     **** 
+ 140:Src/cli.c     **** static void cli_write_history_cmd(char *str)  //�����ʷ����
+ 141:Src/cli.c     **** {
+ 142:Src/cli.c     **** 	static uint8_t i = 0;
+ 143:Src/cli.c     **** 
+ 144:Src/cli.c     **** 	if(strcmp(gCmdParamInfo.historyCmd.cmdBuf[i], str))
+ 145:Src/cli.c     **** 	{
+ 146:Src/cli.c     **** 		if(gCmdParamInfo.historyCmd.cmdBuf[i][0] != 0)
+ARM GAS  /tmp/ccfikaZY.s 			page 5
+
+
+ 147:Src/cli.c     **** 		{
+ 148:Src/cli.c     **** 			if(++i >= HISTORY_CMD_NUM)
+ 149:Src/cli.c     **** 			{
+ 150:Src/cli.c     **** 				i = 0;
+ 151:Src/cli.c     **** 			}
+ 152:Src/cli.c     **** 		}
+ 153:Src/cli.c     **** 		strcpy(gCmdParamInfo.historyCmd.cmdBuf[i],str);
+ 154:Src/cli.c     **** 	}
+ 155:Src/cli.c     **** 	gCmdParamInfo.historyCmd.wIndex = i;
+ 156:Src/cli.c     **** }
+ 157:Src/cli.c     **** 
+ 158:Src/cli.c     **** static void cli_read_history_cmd(uint8_t way) //����ʷ����
+ 159:Src/cli.c     **** {
+ 160:Src/cli.c     **** 	int i;
+ 161:Src/cli.c     **** 
+ 162:Src/cli.c     **** 	way = 0;
+ 163:Src/cli.c     **** 
+ 164:Src/cli.c     **** 	while(gCmdParamInfo.historyCmd.cmdBuf[gCmdParamInfo.historyCmd.wIndex][0] == 0 && gCmdParamInfo.hi
+ 165:Src/cli.c     **** 	{
+ 166:Src/cli.c     **** 		--gCmdParamInfo.historyCmd.wIndex;
+ 167:Src/cli.c     **** 	}
+ 168:Src/cli.c     **** 
+ 169:Src/cli.c     **** 	if(gCmdParamInfo.historyCmd.cmdBuf[gCmdParamInfo.historyCmd.wIndex][0] != 0)
+ 170:Src/cli.c     **** 	{
+ 171:Src/cli.c     **** 		for(i = strlen(gCmdParamInfo.cmdBufCursor); i > 0; i--)
+ 172:Src/cli.c     **** 		{
+ 173:Src/cli.c     **** 			vOutputChar(' ');
+ 174:Src/cli.c     **** 		}
+ 175:Src/cli.c     **** 
+ 176:Src/cli.c     **** 		for(i = strlen(gCmdParamInfo.cmdBuf); i > 0; i--)
+ 177:Src/cli.c     **** 		{
+ 178:Src/cli.c     **** 			vOutputString("\b \b");
+ 179:Src/cli.c     **** 		}
+ 180:Src/cli.c     **** 
+ 181:Src/cli.c     **** 		strcpy(gCmdParamInfo.cmdBuf, &gCmdParamInfo.historyCmd.cmdBuf[gCmdParamInfo.historyCmd.wIndex][0]
+ 182:Src/cli.c     **** 		gCmdParamInfo.cmdBufCursor = gCmdParamInfo.cmdBuf + strlen(&gCmdParamInfo.historyCmd.cmdBuf[gCmdP
+ 183:Src/cli.c     **** 		gCmdParamInfo.cmdBufTail   = gCmdParamInfo.cmdBufCursor;
+ 184:Src/cli.c     **** 		vOutputString(gCmdParamInfo.cmdBuf);
+ 185:Src/cli.c     **** 
+ 186:Src/cli.c     **** 		if(gCmdParamInfo.historyCmd.wIndex -- == 0)
+ 187:Src/cli.c     **** 		{
+ 188:Src/cli.c     **** 			gCmdParamInfo.historyCmd.wIndex = HISTORY_CMD_NUM - 1;
+ 189:Src/cli.c     **** 		}
+ 190:Src/cli.c     **** 	}
+ 191:Src/cli.c     **** }
+ 192:Src/cli.c     **** static void cli_cInput(char ReadChar)
+ 193:Src/cli.c     **** {
+ 194:Src/cli.c     **** 	if(ReadChar == ' ' && (*gCmdParamInfo.cmdBufCursor == ' '|| \
+ 195:Src/cli.c     **** 							(gCmdParamInfo.cmdBufCursor == gCmdParamInfo.cmdBuf) || \
+ 196:Src/cli.c     **** 							(*(gCmdParamInfo.cmdBufCursor - 1) == ' ')))
+ 197:Src/cli.c     **** 	{
+ 198:Src/cli.c     **** 		return;
+ 199:Src/cli.c     **** 	}
+ 200:Src/cli.c     **** 	else
+ 201:Src/cli.c     **** 	{
+ 202:Src/cli.c     **** 		char str[CMD_MAX_LENG];
+ 203:Src/cli.c     **** 		uint16_t i;
+ARM GAS  /tmp/ccfikaZY.s 			page 6
+
+
+ 204:Src/cli.c     **** 		strcpy(str, gCmdParamInfo.cmdBufCursor);
+ 205:Src/cli.c     **** 		memcpy((gCmdParamInfo.cmdBufCursor + 1),str,strlen(str) + 1);
+ 206:Src/cli.c     **** 		*gCmdParamInfo.cmdBufCursor = ReadChar;
+ 207:Src/cli.c     **** 		vOutputChar(ReadChar);
+ 208:Src/cli.c     **** 		vOutputString(str);
+ 209:Src/cli.c     **** 		for(i = strlen(str) ; i > 0 ; i-- )
+ 210:Src/cli.c     **** 		{
+ 211:Src/cli.c     **** 			vOutputChar('\b');
+ 212:Src/cli.c     **** 		}
+ 213:Src/cli.c     **** 		gCmdParamInfo.cmdBufCursor ++;
+ 214:Src/cli.c     **** 		gCmdParamInfo.cmdBufTail ++;
+ 215:Src/cli.c     **** 	}
+ 216:Src/cli.c     **** }
+ 217:Src/cli.c     **** static void cli_backspace(void)
+ 218:Src/cli.c     **** {
+ 219:Src/cli.c     **** 	char str[CMD_MAX_LENG];
+ 220:Src/cli.c     **** 	uint16_t i;
+ 221:Src/cli.c     **** 
+ 222:Src/cli.c     **** 	if(gCmdParamInfo.cmdBufCursor != gCmdParamInfo.cmdBuf)
+ 223:Src/cli.c     **** 	{
+ 224:Src/cli.c     **** 		do
+ 225:Src/cli.c     **** 		{
+ 226:Src/cli.c     **** 			if(gCmdParamInfo.cmdBufCursor == gCmdParamInfo.cmdBuf)
+ 227:Src/cli.c     **** 			{
+ 228:Src/cli.c     **** 				vOutputString(" ");
+ 229:Src/cli.c     **** 				gCmdParamInfo.cmdBufCursor ++;
+ 230:Src/cli.c     **** 			}
+ 231:Src/cli.c     **** 			strcpy(str, gCmdParamInfo.cmdBufCursor);
+ 232:Src/cli.c     **** 			gCmdParamInfo.cmdBufCursor --;
+ 233:Src/cli.c     **** 			gCmdParamInfo.cmdBufTail --;
+ 234:Src/cli.c     **** 			memcpy((gCmdParamInfo.cmdBufCursor),str,strlen(str)+1);
+ 235:Src/cli.c     **** 
+ 236:Src/cli.c     **** 			vOutputString("\b \b");
+ 237:Src/cli.c     **** 			vOutputString(str);
+ 238:Src/cli.c     **** 			vOutputString(" \b");
+ 239:Src/cli.c     **** 
+ 240:Src/cli.c     **** 			for(i = strlen(str); i > 0; i--)
+ 241:Src/cli.c     **** 			{
+ 242:Src/cli.c     **** 				vOutputChar('\b');
+ 243:Src/cli.c     **** 			}
+ 244:Src/cli.c     **** 		}
+ 245:Src/cli.c     **** 		while((gCmdParamInfo.cmdBufCursor == gCmdParamInfo.cmdBuf)&&(*gCmdParamInfo.cmdBufCursor == ' '))
+ 246:Src/cli.c     **** 	}
+ 247:Src/cli.c     **** }
+ 248:Src/cli.c     **** 
+ 249:Src/cli.c     **** static void cli_direction(char ReadChar)
+ 250:Src/cli.c     **** {
+ 251:Src/cli.c     **** 	switch(ReadChar)
+ 252:Src/cli.c     **** 	{
+ 253:Src/cli.c     **** 		case 'A': //up direction key
+ 254:Src/cli.c     **** 		{
+ 255:Src/cli.c     **** 			cli_read_history_cmd(0);
+ 256:Src/cli.c     **** 			break;
+ 257:Src/cli.c     **** 		}
+ 258:Src/cli.c     **** 		case 'B': //down direction key
+ 259:Src/cli.c     **** 		{
+ 260:Src/cli.c     **** 			cli_read_history_cmd(1);
+ARM GAS  /tmp/ccfikaZY.s 			page 7
+
+
+ 261:Src/cli.c     **** 			break;
+ 262:Src/cli.c     **** 		}
+ 263:Src/cli.c     **** 		case 'C': //right direciton key
+ 264:Src/cli.c     **** 		{
+ 265:Src/cli.c     **** 			if(*gCmdParamInfo.cmdBufCursor != '\0')
+ 266:Src/cli.c     **** 			{
+ 267:Src/cli.c     **** 				vOutputChar(0x1b);
+ 268:Src/cli.c     **** 				vOutputChar(0x5b);
+ 269:Src/cli.c     **** 				vOutputChar('C');
+ 270:Src/cli.c     **** 				gCmdParamInfo.cmdBufCursor++;
+ 271:Src/cli.c     **** 			}
+ 272:Src/cli.c     **** 			break;
+ 273:Src/cli.c     **** 		}
+ 274:Src/cli.c     **** 		case 'D': //left direciton key
+ 275:Src/cli.c     **** 		{
+ 276:Src/cli.c     **** 			if(gCmdParamInfo.cmdBufCursor != gCmdParamInfo.cmdBuf)
+ 277:Src/cli.c     **** 			{
+ 278:Src/cli.c     **** 				vOutputChar(0x1b);
+ 279:Src/cli.c     **** 				vOutputChar(0x5b);
+ 280:Src/cli.c     **** 				vOutputChar('D');
+ 281:Src/cli.c     **** 				gCmdParamInfo.cmdBufCursor--;
+ 282:Src/cli.c     **** 			}
+ 283:Src/cli.c     **** 			break;
+ 284:Src/cli.c     **** 		}
+ 285:Src/cli.c     **** 		default :
+ 286:Src/cli.c     **** 			break;
+ 287:Src/cli.c     **** 	}
+ 288:Src/cli.c     **** }
+ 289:Src/cli.c     **** 
+ 290:Src/cli.c     **** /*
+ 291:Src/cli.c     **** static CLI_Command_List_t *CLIParameterSeek(char *str)
+ 292:Src/cli.c     **** {
+ 293:Src/cli.c     **** 	CLI_Command_List_t *command = NULL;
+ 294:Src/cli.c     **** 	uint8_t num = 0;
+ 295:Src/cli.c     **** 	return command;
+ 296:Src/cli.c     **** }
+ 297:Src/cli.c     **** */
+ 298:Src/cli.c     **** static char  *CLI_Charmatching(char *src,char *dst)
+ 299:Src/cli.c     **** {
+ 300:Src/cli.c     **** 	char *ptr;
+ 301:Src/cli.c     **** 
+ 302:Src/cli.c     **** 	if(*src == '#')
+ 303:Src/cli.c     **** 	{
+ 304:Src/cli.c     **** 		return dst;
+ 305:Src/cli.c     **** 	}
+ 306:Src/cli.c     **** 
+ 307:Src/cli.c     **** 	if(!dst || !src)
+ 308:Src/cli.c     **** 	{
+ 309:Src/cli.c     **** 		return NULL;
+ 310:Src/cli.c     **** 	}
+ 311:Src/cli.c     **** 
+ 312:Src/cli.c     **** 	if(*src == '&')
+ 313:Src/cli.c     **** 	{
+ 314:Src/cli.c     **** 		return dst;
+ 315:Src/cli.c     **** 	}
+ 316:Src/cli.c     **** 
+ 317:Src/cli.c     **** 	if(*src == '[')
+ARM GAS  /tmp/ccfikaZY.s 			page 8
+
+
+ 318:Src/cli.c     **** 	{
+ 319:Src/cli.c     **** 		do
+ 320:Src/cli.c     **** 		{
+ 321:Src/cli.c     **** 			while(*(++src) == ' ');
+ 322:Src/cli.c     **** 			ptr = dst;
+ 323:Src/cli.c     **** 			while(*src == *ptr)
+ 324:Src/cli.c     **** 			{
+ 325:Src/cli.c     **** 				src ++;
+ 326:Src/cli.c     **** 				ptr ++;
+ 327:Src/cli.c     **** 				if(((*ptr == ' ') || (*ptr == '\0')) && ((*src == ' ') || (*src == '|') || (*src == ']')|| (*sr
+ 328:Src/cli.c     **** 				{
+ 329:Src/cli.c     **** 					return (src - (ptr - dst));
+ 330:Src/cli.c     **** 				}
+ 331:Src/cli.c     **** 			}
+ 332:Src/cli.c     **** 			while((*src != ']')&&(*src != '|'))src++;
+ 333:Src/cli.c     **** 		}while(*src != ']');
+ 334:Src/cli.c     **** 		return NULL;
+ 335:Src/cli.c     **** 	}
+ 336:Src/cli.c     **** 
+ 337:Src/cli.c     **** 	ptr = strchr(src,' ');
+ 338:Src/cli.c     **** 
+ 339:Src/cli.c     **** 	if(((ptr == NULL) && (!strcmp(src,dst))) || \
+ 340:Src/cli.c     **** 			(((((ptr != NULL) && (!strncmp(src,dst,ptr - src)))) && ((*(dst + (ptr - src)) == ' ') || (*(dst
+ 341:Src/cli.c     **** 			((ptr == NULL) && strchr(dst,'-') &&  !strncmp(src,dst,strlen(src))))
+ 342:Src/cli.c     **** 	{
+ 343:Src/cli.c     **** 		return src;
+ 344:Src/cli.c     **** 	}
+ 345:Src/cli.c     **** 	else
+ 346:Src/cli.c     **** 	{
+ 347:Src/cli.c     **** 		return NULL;
+ 348:Src/cli.c     **** 	}
+ 349:Src/cli.c     **** 
+ 350:Src/cli.c     **** }
+ 351:Src/cli.c     **** 
+ 352:Src/cli.c     **** static CLI_Command_List_t *CLICommandSeek(char *str)
+ 353:Src/cli.c     **** {
+ 354:Src/cli.c     **** 	CLI_Command_List_t *command = &clilist.command[0];
+ 355:Src/cli.c     **** 	char * src,  * dst ;
+ 356:Src/cli.c     **** 	do
+ 357:Src/cli.c     **** 	{
+ 358:Src/cli.c     **** 		src = command -> str;
+ 359:Src/cli.c     **** 		dst = str;
+ 360:Src/cli.c     **** 		while((*src == '#') || (CLI_Charmatching(src,dst) != NULL))
+ 361:Src/cli.c     **** 		{
+ 362:Src/cli.c     **** 			if(*src == '#' && (!CLIGetParameter(src,1)))
+ 363:Src/cli.c     **** 			{
+ 364:Src/cli.c     **** 				return command;
+ 365:Src/cli.c     **** 			}
+ 366:Src/cli.c     **** 			dst = CLIGetParameter(dst,1); //��ȡ�û���һ���ַ���
+ 367:Src/cli.c     **** 			src = CLIGetParameter(src,1); //��ȡ������һ���ַ���
+ 368:Src/cli.c     **** 
+ 369:Src/cli.c     **** 			while((dst) && (*dst == '-'))
+ 370:Src/cli.c     **** 			dst = CLIGetParameter(dst,1); //��ȡ�û���һ���ַ���
+ 371:Src/cli.c     **** 
+ 372:Src/cli.c     **** 			if(!src && !dst)
+ 373:Src/cli.c     **** 			{
+ 374:Src/cli.c     **** 				return command;
+ARM GAS  /tmp/ccfikaZY.s 			page 9
+
+
+ 375:Src/cli.c     **** 			}
+ 376:Src/cli.c     **** 		}
+ 377:Src/cli.c     **** 	}while((++command)->str);
+ 378:Src/cli.c     **** 	return NULL;
+ 379:Src/cli.c     **** }
+ 380:Src/cli.c     **** 
+ 381:Src/cli.c     **** static void cli_ProcessCommand(char *str)
+ 382:Src/cli.c     **** {
+ 383:Src/cli.c     **** 	HAL_StatusTypeDef ret = HAL_OK;
+ 384:Src/cli.c     **** 	CLI_Command_List_t *command;
+ 385:Src/cli.c     **** 	char *parameter[10] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+ 386:Src/cli.c     **** 	char **prt = parameter;
+ 387:Src/cli.c     **** 
+ 388:Src/cli.c     **** 	cli_write_history_cmd(str);  //�����ʷ����
+ 389:Src/cli.c     **** 	cli_format_cmd(str,prt);	 //�ָ��ַ���  -all����ӵ�char** argv
+ 390:Src/cli.c     **** 
+ 391:Src/cli.c     **** 	command = CLICommandSeek(str);  //�ڱ��в��Ҵ�����
+ 392:Src/cli.c     **** 	if(command != NULL)
+ 393:Src/cli.c     **** 	{
+ 394:Src/cli.c     **** 		ret = command->p(gCmdParamInfo.argc,gCmdParamInfo.argv); //ִ���ַ���������
+ 395:Src/cli.c     **** 		if(HAL_OK != ret)
+ 396:Src/cli.c     **** 		{
+ 397:Src/cli.c     **** 			vOutputString("\r\n---ATECMDRESULT--- FAIL");
+ 398:Src/cli.c     **** 		}
+ 399:Src/cli.c     **** 		else
+ 400:Src/cli.c     **** 		{
+ 401:Src/cli.c     **** 			vOutputString("\r\n---ATECMDRESULT--- OK");
+ 402:Src/cli.c     **** 		}
+ 403:Src/cli.c     **** 	}
+ 404:Src/cli.c     **** 	else
+ 405:Src/cli.c     **** 	{
+ 406:Src/cli.c     **** 		vOutputString("\r\nCommand not recognised.  Enter 'help' to view a list of available commands.");
+ 407:Src/cli.c     **** 	}
+ 408:Src/cli.c     **** }
+ 409:Src/cli.c     **** static HAL_StatusTypeDef prvDispHelpConfig()  //�����������
+ 410:Src/cli.c     **** {
+  86              		.loc 1 410 0
+  87              		.cfi_startproc
+  88              		@ args = 0, pretend = 0, frame = 0
+  89              		@ frame_needed = 0, uses_anonymous_args = 0
+  90 0000 10B5     		push	{r4, lr}
+  91              	.LCFI1:
+  92              		.cfi_def_cfa_offset 8
+  93              		.cfi_offset 4, -8
+  94              		.cfi_offset 14, -4
+  95              	.LVL3:
+ 411:Src/cli.c     **** 	CLI_Command_List_t *command = &clilist.command[0];
+  96              		.loc 1 411 0
+  97 0002 064C     		ldr	r4, .L11
+  98              	.LVL4:
+  99              	.L9:
+ 412:Src/cli.c     **** 	do
+ 413:Src/cli.c     **** 	{
+ 414:Src/cli.c     **** 		vOutputString("\r\n        ");
+ 100              		.loc 1 414 0 discriminator 1
+ 101 0004 0648     		ldr	r0, .L11+4
+ 102 0006 FFF7FEFF 		bl	vOutputString
+ARM GAS  /tmp/ccfikaZY.s 			page 10
+
+
+ 103              	.LVL5:
+ 415:Src/cli.c     **** 		vOutputString(command ->str);
+ 104              		.loc 1 415 0 discriminator 1
+ 105 000a 2068     		ldr	r0, [r4]
+ 106 000c FFF7FEFF 		bl	vOutputString
+ 107              	.LVL6:
+ 416:Src/cli.c     **** 	}while((++command) ->str);
+ 108              		.loc 1 416 0 discriminator 1
+ 109 0010 54F8083F 		ldr	r3, [r4, #8]!
+ 110              	.LVL7:
+ 111 0014 002B     		cmp	r3, #0
+ 112 0016 F5D1     		bne	.L9
+ 417:Src/cli.c     **** 	return HAL_OK;
+ 418:Src/cli.c     **** }
+ 113              		.loc 1 418 0
+ 114 0018 0020     		movs	r0, #0
+ 115 001a 10BD     		pop	{r4, pc}
+ 116              	.LVL8:
+ 117              	.L12:
+ 118              		.align	2
+ 119              	.L11:
+ 120 001c 00000000 		.word	clilist
+ 121 0020 04000000 		.word	.LC1
+ 122              		.cfi_endproc
+ 123              	.LFE78:
+ 125              		.section	.text.cli_write_history_cmd,"ax",%progbits
+ 126              		.align	2
+ 127              		.thumb
+ 128              		.thumb_func
+ 130              	cli_write_history_cmd:
+ 131              	.LFB70:
+ 141:Src/cli.c     **** 	static uint8_t i = 0;
+ 132              		.loc 1 141 0
+ 133              		.cfi_startproc
+ 134              		@ args = 0, pretend = 0, frame = 0
+ 135              		@ frame_needed = 0, uses_anonymous_args = 0
+ 136              	.LVL9:
+ 137 0000 38B5     		push	{r3, r4, r5, lr}
+ 138              	.LCFI2:
+ 139              		.cfi_def_cfa_offset 16
+ 140              		.cfi_offset 3, -16
+ 141              		.cfi_offset 4, -12
+ 142              		.cfi_offset 5, -8
+ 143              		.cfi_offset 14, -4
+ 144 0002 0546     		mov	r5, r0
+ 144:Src/cli.c     **** 	{
+ 145              		.loc 1 144 0
+ 146 0004 124B     		ldr	r3, .L17
+ 147 0006 1C78     		ldrb	r4, [r3]	@ zero_extendqisi2
+ 148 0008 1248     		ldr	r0, .L17+4
+ 149              	.LVL10:
+ 150 000a 00EB0420 		add	r0, r0, r4, lsl #8
+ 151 000e 2946     		mov	r1, r5
+ 152 0010 FFF7FEFF 		bl	strcmp
+ 153              	.LVL11:
+ 154 0014 A8B1     		cbz	r0, .L14
+ 146:Src/cli.c     **** 		{
+ARM GAS  /tmp/ccfikaZY.s 			page 11
+
+
+ 155              		.loc 1 146 0
+ 156 0016 104B     		ldr	r3, .L17+8
+ 157 0018 03EB0423 		add	r3, r3, r4, lsl #8
+ 158 001c 93F86032 		ldrb	r3, [r3, #608]	@ zero_extendqisi2
+ 159 0020 3BB1     		cbz	r3, .L15
+ 148:Src/cli.c     **** 			{
+ 160              		.loc 1 148 0
+ 161 0022 0134     		adds	r4, r4, #1
+ 162 0024 E4B2     		uxtb	r4, r4
+ 163 0026 0A4B     		ldr	r3, .L17
+ 164 0028 1C70     		strb	r4, [r3]
+ 165 002a 042C     		cmp	r4, #4
+ 166 002c 01D9     		bls	.L15
+ 150:Src/cli.c     **** 			}
+ 167              		.loc 1 150 0
+ 168 002e 0022     		movs	r2, #0
+ 169 0030 1A70     		strb	r2, [r3]
+ 170              	.L15:
+ 153:Src/cli.c     **** 	}
+ 171              		.loc 1 153 0
+ 172 0032 074B     		ldr	r3, .L17
+ 173 0034 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 174 0036 074B     		ldr	r3, .L17+4
+ 175 0038 03EB0020 		add	r0, r3, r0, lsl #8
+ 176 003c 2946     		mov	r1, r5
+ 177 003e FFF7FEFF 		bl	strcpy
+ 178              	.LVL12:
+ 179              	.L14:
+ 155:Src/cli.c     **** }
+ 180              		.loc 1 155 0
+ 181 0042 034B     		ldr	r3, .L17
+ 182 0044 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 183 0046 044B     		ldr	r3, .L17+8
+ 184 0048 83F86027 		strb	r2, [r3, #1888]
+ 185 004c 38BD     		pop	{r3, r4, r5, pc}
+ 186              	.LVL13:
+ 187              	.L18:
+ 188 004e 00BF     		.align	2
+ 189              	.L17:
+ 190 0050 00000000 		.word	.LANCHOR0
+ 191 0054 60020000 		.word	gCmdParamInfo+608
+ 192 0058 00000000 		.word	gCmdParamInfo
+ 193              		.cfi_endproc
+ 194              	.LFE70:
+ 196              		.section	.text.CLIGetParameter,"ax",%progbits
+ 197              		.align	2
+ 198              		.thumb
+ 199              		.thumb_func
+ 201              	CLIGetParameter:
+ 202              	.LFB68:
+  65:Src/cli.c     **** 	char *dst = str;
+ 203              		.loc 1 65 0
+ 204              		.cfi_startproc
+ 205              		@ args = 0, pretend = 0, frame = 0
+ 206              		@ frame_needed = 0, uses_anonymous_args = 0
+ 207              	.LVL14:
+ 208 0000 38B5     		push	{r3, r4, r5, lr}
+ARM GAS  /tmp/ccfikaZY.s 			page 12
+
+
+ 209              	.LCFI3:
+ 210              		.cfi_def_cfa_offset 16
+ 211              		.cfi_offset 3, -16
+ 212              		.cfi_offset 4, -12
+ 213              		.cfi_offset 5, -8
+ 214              		.cfi_offset 14, -4
+ 215 0002 0D46     		mov	r5, r1
+ 216              	.LVL15:
+  68:Src/cli.c     **** 	if(num == 0 && *dst)
+ 217              		.loc 1 68 0
+ 218 0004 00E0     		b	.L20
+ 219              	.LVL16:
+ 220              	.L21:
+  68:Src/cli.c     **** 	if(num == 0 && *dst)
+ 221              		.loc 1 68 0 is_stmt 0 discriminator 2
+ 222 0006 0130     		adds	r0, r0, #1
+ 223              	.LVL17:
+ 224              	.L20:
+  68:Src/cli.c     **** 	if(num == 0 && *dst)
+ 225              		.loc 1 68 0 discriminator 1
+ 226 0008 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 227 000a 202B     		cmp	r3, #32
+ 228 000c FBD0     		beq	.L21
+  69:Src/cli.c     **** 	{
+ 229              		.loc 1 69 0 is_stmt 1
+ 230 000e 0DB1     		cbz	r5, .L22
+ 231              	.L24:
+  65:Src/cli.c     **** 	char *dst = str;
+ 232              		.loc 1 65 0
+ 233 0010 0024     		movs	r4, #0
+ 234 0012 1BE0     		b	.L23
+ 235              	.L22:
+  69:Src/cli.c     **** 	{
+ 236              		.loc 1 69 0 discriminator 1
+ 237 0014 002B     		cmp	r3, #0
+ 238 0016 FBD0     		beq	.L24
+  71:Src/cli.c     **** 	}
+ 239              		.loc 1 71 0
+ 240 0018 38BD     		pop	{r3, r4, r5, pc}
+ 241              	.LVL18:
+ 242              	.L30:
+  75:Src/cli.c     **** 		{
+ 243              		.loc 1 75 0
+ 244 001a 5B2B     		cmp	r3, #91
+ 245 001c 09D1     		bne	.L26
+  77:Src/cli.c     **** 			if(dst == NULL)
+ 246              		.loc 1 77 0
+ 247 001e 5D21     		movs	r1, #93
+ 248 0020 FFF7FEFF 		bl	strchr
+ 249              	.LVL19:
+  78:Src/cli.c     **** 			{
+ 250              		.loc 1 78 0
+ 251 0024 0130     		adds	r0, r0, #1
+ 252              	.LVL20:
+ 253 0026 11D1     		bne	.L23
+  80:Src/cli.c     **** 				return NULL;
+ 254              		.loc 1 80 0
+ARM GAS  /tmp/ccfikaZY.s 			page 13
+
+
+ 255 0028 0B48     		ldr	r0, .L32
+ 256              	.LVL21:
+ 257 002a FFF7FEFF 		bl	vOutputString
+ 258              	.LVL22:
+  81:Src/cli.c     **** 			}
+ 259              		.loc 1 81 0
+ 260 002e 0020     		movs	r0, #0
+ 261 0030 38BD     		pop	{r3, r4, r5, pc}
+ 262              	.LVL23:
+ 263              	.L26:
+  84:Src/cli.c     **** 		{
+ 264              		.loc 1 84 0
+ 265 0032 0130     		adds	r0, r0, #1
+ 266              	.LVL24:
+ 267 0034 202B     		cmp	r3, #32
+ 268 0036 09D1     		bne	.L23
+ 269 0038 00E0     		b	.L28
+ 270              	.L29:
+  86:Src/cli.c     **** 			i++;
+ 271              		.loc 1 86 0 discriminator 2
+ 272 003a 0130     		adds	r0, r0, #1
+ 273              	.LVL25:
+ 274              	.L28:
+  86:Src/cli.c     **** 			i++;
+ 275              		.loc 1 86 0 is_stmt 0 discriminator 1
+ 276 003c 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 277 003e 202B     		cmp	r3, #32
+ 278 0040 FBD0     		beq	.L29
+  87:Src/cli.c     **** 			if(i == num && *dst)
+ 279              		.loc 1 87 0 is_stmt 1
+ 280 0042 0134     		adds	r4, r4, #1
+ 281              	.LVL26:
+ 282 0044 E4B2     		uxtb	r4, r4
+ 283              	.LVL27:
+  88:Src/cli.c     **** 			{
+ 284              		.loc 1 88 0
+ 285 0046 AC42     		cmp	r4, r5
+ 286 0048 00D1     		bne	.L23
+  88:Src/cli.c     **** 			{
+ 287              		.loc 1 88 0 is_stmt 0 discriminator 1
+ 288 004a 1BB9     		cbnz	r3, .L25
+ 289              	.LVL28:
+ 290              	.L23:
+  73:Src/cli.c     **** 	{
+ 291              		.loc 1 73 0 is_stmt 1
+ 292 004c 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 293 004e 002B     		cmp	r3, #0
+ 294 0050 E3D1     		bne	.L30
+  94:Src/cli.c     **** }
+ 295              		.loc 1 94 0
+ 296 0052 0020     		movs	r0, #0
+ 297              	.LVL29:
+ 298              	.L25:
+  95:Src/cli.c     **** 
+ 299              		.loc 1 95 0
+ 300 0054 38BD     		pop	{r3, r4, r5, pc}
+ 301              	.LVL30:
+ARM GAS  /tmp/ccfikaZY.s 			page 14
+
+
+ 302              	.L33:
+ 303 0056 00BF     		.align	2
+ 304              	.L32:
+ 305 0058 10000000 		.word	.LC2
+ 306              		.cfi_endproc
+ 307              	.LFE68:
+ 309              		.section	.text.CLI_Charmatching,"ax",%progbits
+ 310              		.align	2
+ 311              		.thumb
+ 312              		.thumb_func
+ 314              	CLI_Charmatching:
+ 315              	.LFB75:
+ 299:Src/cli.c     **** 	char *ptr;
+ 316              		.loc 1 299 0
+ 317              		.cfi_startproc
+ 318              		@ args = 0, pretend = 0, frame = 0
+ 319              		@ frame_needed = 0, uses_anonymous_args = 0
+ 320              	.LVL31:
+ 321 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 322              	.LCFI4:
+ 323              		.cfi_def_cfa_offset 24
+ 324              		.cfi_offset 3, -24
+ 325              		.cfi_offset 4, -20
+ 326              		.cfi_offset 5, -16
+ 327              		.cfi_offset 6, -12
+ 328              		.cfi_offset 7, -8
+ 329              		.cfi_offset 14, -4
+ 330 0002 0446     		mov	r4, r0
+ 331 0004 0D46     		mov	r5, r1
+ 302:Src/cli.c     **** 	{
+ 332              		.loc 1 302 0
+ 333 0006 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 334 0008 232B     		cmp	r3, #35
+ 335 000a 55D0     		beq	.L49
+ 307:Src/cli.c     **** 	{
+ 336              		.loc 1 307 0
+ 337 000c 0029     		cmp	r1, #0
+ 338 000e 55D0     		beq	.L50
+ 307:Src/cli.c     **** 	{
+ 339              		.loc 1 307 0 is_stmt 0 discriminator 1
+ 340 0010 0028     		cmp	r0, #0
+ 341 0012 55D0     		beq	.L51
+ 312:Src/cli.c     **** 	{
+ 342              		.loc 1 312 0 is_stmt 1
+ 343 0014 262B     		cmp	r3, #38
+ 344 0016 55D0     		beq	.L52
+ 317:Src/cli.c     **** 	{
+ 345              		.loc 1 317 0
+ 346 0018 5B2B     		cmp	r3, #91
+ 347 001a 25D1     		bne	.L36
+ 348              	.LVL32:
+ 349              	.L37:
+ 321:Src/cli.c     **** 			ptr = dst;
+ 350              		.loc 1 321 0 discriminator 1
+ 351 001c 14F8013F 		ldrb	r3, [r4, #1]!	@ zero_extendqisi2
+ 352              	.LVL33:
+ 353 0020 202B     		cmp	r3, #32
+ARM GAS  /tmp/ccfikaZY.s 			page 15
+
+
+ 354 0022 FBD0     		beq	.L37
+ 321:Src/cli.c     **** 			ptr = dst;
+ 355              		.loc 1 321 0 is_stmt 0
+ 356 0024 2B46     		mov	r3, r5
+ 357 0026 10E0     		b	.L38
+ 358              	.LVL34:
+ 359              	.L42:
+ 325:Src/cli.c     **** 				ptr ++;
+ 360              		.loc 1 325 0 is_stmt 1
+ 361 0028 0134     		adds	r4, r4, #1
+ 362              	.LVL35:
+ 327:Src/cli.c     **** 				{
+ 363              		.loc 1 327 0
+ 364 002a 13F8012F 		ldrb	r2, [r3, #1]!	@ zero_extendqisi2
+ 365              	.LVL36:
+ 366 002e 202A     		cmp	r2, #32
+ 367 0030 00D0     		beq	.L39
+ 327:Src/cli.c     **** 				{
+ 368              		.loc 1 327 0 is_stmt 0 discriminator 2
+ 369 0032 52B9     		cbnz	r2, .L38
+ 370              	.L39:
+ 327:Src/cli.c     **** 				{
+ 371              		.loc 1 327 0 discriminator 3
+ 372 0034 2278     		ldrb	r2, [r4]	@ zero_extendqisi2
+ 373 0036 202A     		cmp	r2, #32
+ 374 0038 04D0     		beq	.L41
+ 327:Src/cli.c     **** 				{
+ 375              		.loc 1 327 0 discriminator 4
+ 376 003a 7C2A     		cmp	r2, #124
+ 377 003c 02D0     		beq	.L41
+ 327:Src/cli.c     **** 				{
+ 378              		.loc 1 327 0 discriminator 5
+ 379 003e 5D2A     		cmp	r2, #93
+ 380 0040 00D0     		beq	.L41
+ 327:Src/cli.c     **** 				{
+ 381              		.loc 1 327 0 discriminator 6
+ 382 0042 12B9     		cbnz	r2, .L38
+ 383              	.L41:
+ 329:Src/cli.c     **** 				}
+ 384              		.loc 1 329 0 is_stmt 1
+ 385 0044 EB1A     		subs	r3, r5, r3
+ 386              	.LVL37:
+ 387 0046 2344     		add	r3, r3, r4
+ 388 0048 47E0     		b	.L35
+ 389              	.LVL38:
+ 390              	.L38:
+ 323:Src/cli.c     **** 			{
+ 391              		.loc 1 323 0
+ 392 004a 2178     		ldrb	r1, [r4]	@ zero_extendqisi2
+ 393 004c 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 394 004e 9142     		cmp	r1, r2
+ 395 0050 EAD0     		beq	.L42
+ 396 0052 00E0     		b	.L43
+ 397              	.LVL39:
+ 398              	.L45:
+ 332:Src/cli.c     **** 		}while(*src != ']');
+ 399              		.loc 1 332 0 discriminator 3
+ARM GAS  /tmp/ccfikaZY.s 			page 16
+
+
+ 400 0054 0134     		adds	r4, r4, #1
+ 401              	.LVL40:
+ 402              	.L43:
+ 332:Src/cli.c     **** 		}while(*src != ']');
+ 403              		.loc 1 332 0 is_stmt 0 discriminator 1
+ 404 0056 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 405 0058 5D2B     		cmp	r3, #93
+ 406 005a 01D0     		beq	.L44
+ 332:Src/cli.c     **** 		}while(*src != ']');
+ 407              		.loc 1 332 0 discriminator 2
+ 408 005c 7C2B     		cmp	r3, #124
+ 409 005e F9D1     		bne	.L45
+ 410              	.L44:
+ 333:Src/cli.c     **** 		return NULL;
+ 411              		.loc 1 333 0 is_stmt 1
+ 412 0060 5D2B     		cmp	r3, #93
+ 413 0062 DBD1     		bne	.L37
+ 334:Src/cli.c     **** 	}
+ 414              		.loc 1 334 0
+ 415 0064 0023     		movs	r3, #0
+ 416 0066 38E0     		b	.L35
+ 417              	.LVL41:
+ 418              	.L36:
+ 337:Src/cli.c     **** 
+ 419              		.loc 1 337 0
+ 420 0068 2021     		movs	r1, #32
+ 421              	.LVL42:
+ 422 006a FFF7FEFF 		bl	strchr
+ 423              	.LVL43:
+ 339:Src/cli.c     **** 			(((((ptr != NULL) && (!strncmp(src,dst,ptr - src)))) && ((*(dst + (ptr - src)) == ' ') || (*(dst
+ 424              		.loc 1 339 0
+ 425 006e 0646     		mov	r6, r0
+ 426 0070 20B9     		cbnz	r0, .L47
+ 339:Src/cli.c     **** 			(((((ptr != NULL) && (!strncmp(src,dst,ptr - src)))) && ((*(dst + (ptr - src)) == ' ') || (*(dst
+ 427              		.loc 1 339 0 is_stmt 0 discriminator 1
+ 428 0072 2046     		mov	r0, r4
+ 429              	.LVL44:
+ 430 0074 2946     		mov	r1, r5
+ 431 0076 FFF7FEFF 		bl	strcmp
+ 432              	.LVL45:
+ 433 007a 28B3     		cbz	r0, .L53
+ 434              	.L47:
+ 339:Src/cli.c     **** 			(((((ptr != NULL) && (!strncmp(src,dst,ptr - src)))) && ((*(dst + (ptr - src)) == ' ') || (*(dst
+ 435              		.loc 1 339 0 discriminator 3
+ 436 007c 56B1     		cbz	r6, .L48
+ 340:Src/cli.c     **** 			((ptr == NULL) && strchr(dst,'-') &&  !strncmp(src,dst,strlen(src))))
+ 437              		.loc 1 340 0 is_stmt 1
+ 438 007e 371B     		subs	r7, r6, r4
+ 439 0080 2046     		mov	r0, r4
+ 440 0082 2946     		mov	r1, r5
+ 441 0084 3A46     		mov	r2, r7
+ 442 0086 FFF7FEFF 		bl	strncmp
+ 443              	.LVL46:
+ 444 008a 18B9     		cbnz	r0, .L48
+ 340:Src/cli.c     **** 			((ptr == NULL) && strchr(dst,'-') &&  !strncmp(src,dst,strlen(src))))
+ 445              		.loc 1 340 0 is_stmt 0 discriminator 1
+ 446 008c EB5D     		ldrb	r3, [r5, r7]	@ zero_extendqisi2
+ARM GAS  /tmp/ccfikaZY.s 			page 17
+
+
+ 447 008e 202B     		cmp	r3, #32
+ 448 0090 1CD0     		beq	.L54
+ 340:Src/cli.c     **** 			((ptr == NULL) && strchr(dst,'-') &&  !strncmp(src,dst,strlen(src))))
+ 449              		.loc 1 340 0 discriminator 3
+ 450 0092 EBB1     		cbz	r3, .L55
+ 451              	.L48:
+ 340:Src/cli.c     **** 			((ptr == NULL) && strchr(dst,'-') &&  !strncmp(src,dst,strlen(src))))
+ 452              		.loc 1 340 0 discriminator 4
+ 453 0094 F6B9     		cbnz	r6, .L56
+ 341:Src/cli.c     **** 	{
+ 454              		.loc 1 341 0 is_stmt 1
+ 455 0096 2846     		mov	r0, r5
+ 456 0098 2D21     		movs	r1, #45
+ 457 009a FFF7FEFF 		bl	strchr
+ 458              	.LVL47:
+ 459 009e 0346     		mov	r3, r0
+ 460 00a0 D8B1     		cbz	r0, .L35
+ 341:Src/cli.c     **** 	{
+ 461              		.loc 1 341 0 is_stmt 0 discriminator 1
+ 462 00a2 2046     		mov	r0, r4
+ 463 00a4 FFF7FEFF 		bl	strlen
+ 464              	.LVL48:
+ 465 00a8 0246     		mov	r2, r0
+ 466 00aa 2046     		mov	r0, r4
+ 467 00ac 2946     		mov	r1, r5
+ 468 00ae FFF7FEFF 		bl	strncmp
+ 469              	.LVL49:
+ 470 00b2 88B1     		cbz	r0, .L57
+ 347:Src/cli.c     **** 	}
+ 471              		.loc 1 347 0 is_stmt 1
+ 472 00b4 0023     		movs	r3, #0
+ 473 00b6 10E0     		b	.L35
+ 474              	.LVL50:
+ 475              	.L49:
+ 304:Src/cli.c     **** 	}
+ 476              		.loc 1 304 0
+ 477 00b8 0B46     		mov	r3, r1
+ 478 00ba 0EE0     		b	.L35
+ 479              	.L50:
+ 309:Src/cli.c     **** 	}
+ 480              		.loc 1 309 0
+ 481 00bc 0023     		movs	r3, #0
+ 482 00be 0CE0     		b	.L35
+ 483              	.L51:
+ 484 00c0 0023     		movs	r3, #0
+ 485 00c2 0AE0     		b	.L35
+ 486              	.L52:
+ 314:Src/cli.c     **** 	}
+ 487              		.loc 1 314 0
+ 488 00c4 0B46     		mov	r3, r1
+ 489 00c6 08E0     		b	.L35
+ 490              	.LVL51:
+ 491              	.L53:
+ 343:Src/cli.c     **** 	}
+ 492              		.loc 1 343 0
+ 493 00c8 2346     		mov	r3, r4
+ 494 00ca 06E0     		b	.L35
+ARM GAS  /tmp/ccfikaZY.s 			page 18
+
+
+ 495              	.L54:
+ 496 00cc 2346     		mov	r3, r4
+ 497 00ce 04E0     		b	.L35
+ 498              	.L55:
+ 499 00d0 2346     		mov	r3, r4
+ 500 00d2 02E0     		b	.L35
+ 501              	.L56:
+ 347:Src/cli.c     **** 	}
+ 502              		.loc 1 347 0
+ 503 00d4 0023     		movs	r3, #0
+ 504 00d6 00E0     		b	.L35
+ 505              	.L57:
+ 343:Src/cli.c     **** 	}
+ 506              		.loc 1 343 0
+ 507 00d8 2346     		mov	r3, r4
+ 508              	.LVL52:
+ 509              	.L35:
+ 350:Src/cli.c     **** 
+ 510              		.loc 1 350 0
+ 511 00da 1846     		mov	r0, r3
+ 512 00dc F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 513              		.cfi_endproc
+ 514              	.LFE75:
+ 516 00de 00BF     		.section	.text.CLICommandSeek,"ax",%progbits
+ 517              		.align	2
+ 518              		.thumb
+ 519              		.thumb_func
+ 521              	CLICommandSeek:
+ 522              	.LFB76:
+ 353:Src/cli.c     **** 	CLI_Command_List_t *command = &clilist.command[0];
+ 523              		.loc 1 353 0
+ 524              		.cfi_startproc
+ 525              		@ args = 0, pretend = 0, frame = 0
+ 526              		@ frame_needed = 0, uses_anonymous_args = 0
+ 527              	.LVL53:
+ 528 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+ 529              	.LCFI5:
+ 530              		.cfi_def_cfa_offset 24
+ 531              		.cfi_offset 4, -24
+ 532              		.cfi_offset 5, -20
+ 533              		.cfi_offset 6, -16
+ 534              		.cfi_offset 7, -12
+ 535              		.cfi_offset 8, -8
+ 536              		.cfi_offset 14, -4
+ 537 0004 8046     		mov	r8, r0
+ 538              	.LVL54:
+ 354:Src/cli.c     **** 	char * src,  * dst ;
+ 539              		.loc 1 354 0
+ 540 0006 1B4F     		ldr	r7, .L70
+ 541              	.LVL55:
+ 542              	.L68:
+ 358:Src/cli.c     **** 		dst = str;
+ 543              		.loc 1 358 0
+ 544 0008 3D68     		ldr	r5, [r7]
+ 545              	.LVL56:
+ 359:Src/cli.c     **** 		while((*src == '#') || (CLI_Charmatching(src,dst) != NULL))
+ 546              		.loc 1 359 0
+ARM GAS  /tmp/ccfikaZY.s 			page 19
+
+
+ 547 000a 4446     		mov	r4, r8
+ 360:Src/cli.c     **** 		{
+ 548              		.loc 1 360 0
+ 549 000c 22E0     		b	.L60
+ 550              	.LVL57:
+ 551              	.L67:
+ 362:Src/cli.c     **** 			{
+ 552              		.loc 1 362 0
+ 553 000e 232E     		cmp	r6, #35
+ 554 0010 07D1     		bne	.L61
+ 362:Src/cli.c     **** 			{
+ 555              		.loc 1 362 0 is_stmt 0 discriminator 1
+ 556 0012 2846     		mov	r0, r5
+ 557 0014 0121     		movs	r1, #1
+ 558 0016 FFF7FEFF 		bl	CLIGetParameter
+ 559              	.LVL58:
+ 560 001a 10B9     		cbnz	r0, .L61
+ 364:Src/cli.c     **** 			}
+ 561              		.loc 1 364 0 is_stmt 1
+ 562 001c 3846     		mov	r0, r7
+ 563 001e BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 564              	.LVL59:
+ 565              	.L61:
+ 366:Src/cli.c     **** 			src = CLIGetParameter(src,1); //��ȡ������һ���ַ���
+ 566              		.loc 1 366 0
+ 567 0022 2046     		mov	r0, r4
+ 568 0024 0121     		movs	r1, #1
+ 569 0026 FFF7FEFF 		bl	CLIGetParameter
+ 570              	.LVL60:
+ 571 002a 0446     		mov	r4, r0
+ 572              	.LVL61:
+ 367:Src/cli.c     **** 
+ 573              		.loc 1 367 0
+ 574 002c 2846     		mov	r0, r5
+ 575              	.LVL62:
+ 576 002e 0121     		movs	r1, #1
+ 577 0030 FFF7FEFF 		bl	CLIGetParameter
+ 578              	.LVL63:
+ 579 0034 0546     		mov	r5, r0
+ 580              	.LVL64:
+ 369:Src/cli.c     **** 			dst = CLIGetParameter(dst,1); //��ȡ�û���һ���ַ���
+ 581              		.loc 1 369 0
+ 582 0036 04E0     		b	.L63
+ 583              	.LVL65:
+ 584              	.L65:
+ 370:Src/cli.c     **** 
+ 585              		.loc 1 370 0
+ 586 0038 2046     		mov	r0, r4
+ 587 003a 0121     		movs	r1, #1
+ 588 003c FFF7FEFF 		bl	CLIGetParameter
+ 589              	.LVL66:
+ 590 0040 0446     		mov	r4, r0
+ 591              	.LVL67:
+ 592              	.L63:
+ 369:Src/cli.c     **** 			dst = CLIGetParameter(dst,1); //��ȡ�û���һ���ַ���
+ 593              		.loc 1 369 0
+ 594 0042 14B1     		cbz	r4, .L64
+ARM GAS  /tmp/ccfikaZY.s 			page 20
+
+
+ 369:Src/cli.c     **** 			dst = CLIGetParameter(dst,1); //��ȡ�û���һ���ַ���
+ 595              		.loc 1 369 0 is_stmt 0 discriminator 1
+ 596 0044 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 597 0046 2D2B     		cmp	r3, #45
+ 598 0048 F6D0     		beq	.L65
+ 599              	.L64:
+ 372:Src/cli.c     **** 			{
+ 600              		.loc 1 372 0 is_stmt 1
+ 601 004a 1DB9     		cbnz	r5, .L60
+ 372:Src/cli.c     **** 			{
+ 602              		.loc 1 372 0 is_stmt 0 discriminator 1
+ 603 004c 14B9     		cbnz	r4, .L60
+ 374:Src/cli.c     **** 			}
+ 604              		.loc 1 374 0 is_stmt 1
+ 605 004e 3846     		mov	r0, r7
+ 606 0050 BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 607              	.LVL68:
+ 608              	.L60:
+ 360:Src/cli.c     **** 		{
+ 609              		.loc 1 360 0
+ 610 0054 2E78     		ldrb	r6, [r5]	@ zero_extendqisi2
+ 611 0056 232E     		cmp	r6, #35
+ 612 0058 D9D0     		beq	.L67
+ 360:Src/cli.c     **** 		{
+ 613              		.loc 1 360 0 is_stmt 0 discriminator 1
+ 614 005a 2846     		mov	r0, r5
+ 615 005c 2146     		mov	r1, r4
+ 616 005e FFF7FEFF 		bl	CLI_Charmatching
+ 617              	.LVL69:
+ 618 0062 0028     		cmp	r0, #0
+ 619 0064 D3D1     		bne	.L67
+ 377:Src/cli.c     **** 	return NULL;
+ 620              		.loc 1 377 0 is_stmt 1
+ 621 0066 57F8083F 		ldr	r3, [r7, #8]!
+ 622              	.LVL70:
+ 623 006a 002B     		cmp	r3, #0
+ 624 006c CCD1     		bne	.L68
+ 379:Src/cli.c     **** 
+ 625              		.loc 1 379 0
+ 626 006e BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 627              	.LVL71:
+ 628              	.L71:
+ 629 0072 00BF     		.align	2
+ 630              	.L70:
+ 631 0074 00000000 		.word	clilist
+ 632              		.cfi_endproc
+ 633              	.LFE76:
+ 635              		.section	.text.cli_format_cmd,"ax",%progbits
+ 636              		.align	2
+ 637              		.thumb
+ 638              		.thumb_func
+ 640              	cli_format_cmd:
+ 641              	.LFB69:
+  98:Src/cli.c     **** 	char *strend;
+ 642              		.loc 1 98 0
+ 643              		.cfi_startproc
+ 644              		@ args = 0, pretend = 0, frame = 0
+ARM GAS  /tmp/ccfikaZY.s 			page 21
+
+
+ 645              		@ frame_needed = 0, uses_anonymous_args = 0
+ 646              	.LVL72:
+ 647 0000 2DE9F843 		push	{r3, r4, r5, r6, r7, r8, r9, lr}
+ 648              	.LCFI6:
+ 649              		.cfi_def_cfa_offset 32
+ 650              		.cfi_offset 3, -32
+ 651              		.cfi_offset 4, -28
+ 652              		.cfi_offset 5, -24
+ 653              		.cfi_offset 6, -20
+ 654              		.cfi_offset 7, -16
+ 655              		.cfi_offset 8, -12
+ 656              		.cfi_offset 9, -8
+ 657              		.cfi_offset 14, -4
+ 658 0004 0446     		mov	r4, r0
+ 659 0006 0F46     		mov	r7, r1
+ 101:Src/cli.c     **** 	gCmdParamInfo.argv[0] = gCmdParamInfo.argvBuf;
+ 660              		.loc 1 101 0
+ 661 0008 364A     		ldr	r2, .L80
+ 662 000a 1346     		mov	r3, r2
+ 663 000c 0021     		movs	r1, #0
+ 664              	.LVL73:
+ 665 000e 43F8601B 		str	r1, [r3], #96
+ 102:Src/cli.c     **** 	do
+ 666              		.loc 1 102 0
+ 667 0012 1361     		str	r3, [r2, #16]
+ 668              	.LVL74:
+ 669              	.L78:
+ 105:Src/cli.c     **** 		if(strend == NULL)
+ 670              		.loc 1 105 0
+ 671 0014 2046     		mov	r0, r4
+ 672 0016 2021     		movs	r1, #32
+ 673 0018 FFF7FEFF 		bl	strchr
+ 674              	.LVL75:
+ 106:Src/cli.c     **** 		{
+ 675              		.loc 1 106 0
+ 676 001c 0546     		mov	r5, r0
+ 677 001e 68BB     		cbnz	r0, .L73
+ 108:Src/cli.c     **** 			{
+ 678              		.loc 1 108 0
+ 679 0020 2046     		mov	r0, r4
+ 680              	.LVL76:
+ 681 0022 3149     		ldr	r1, .L80+4
+ 682 0024 0422     		movs	r2, #4
+ 683 0026 FFF7FEFF 		bl	strncmp
+ 684              	.LVL77:
+ 685 002a 18B3     		cbz	r0, .L74
+ 110:Src/cli.c     **** 				*(gCmdParamInfo.argv[gCmdParamInfo.argc ++] + strlen(strtop)) = '\0';
+ 686              		.loc 1 110 0
+ 687 002c 2D4E     		ldr	r6, .L80
+ 688 002e 3368     		ldr	r3, [r6]
+ 689 0030 0433     		adds	r3, r3, #4
+ 690 0032 56F82300 		ldr	r0, [r6, r3, lsl #2]
+ 691 0036 2146     		mov	r1, r4
+ 692 0038 FFF7FEFF 		bl	strcpy
+ 693              	.LVL78:
+ 111:Src/cli.c     **** 				gCmdParamInfo.argv[gCmdParamInfo.argc] = gCmdParamInfo.argv[gCmdParamInfo.argc - 1] + strlen(st
+ 694              		.loc 1 111 0
+ARM GAS  /tmp/ccfikaZY.s 			page 22
+
+
+ 695 003c 3368     		ldr	r3, [r6]
+ 696 003e 5A1C     		adds	r2, r3, #1
+ 697 0040 3260     		str	r2, [r6]
+ 698 0042 0433     		adds	r3, r3, #4
+ 699 0044 56F82380 		ldr	r8, [r6, r3, lsl #2]
+ 700 0048 2046     		mov	r0, r4
+ 701 004a FFF7FEFF 		bl	strlen
+ 702              	.LVL79:
+ 703 004e 0023     		movs	r3, #0
+ 704 0050 08F80030 		strb	r3, [r8, r0]
+ 112:Src/cli.c     **** 			}
+ 705              		.loc 1 112 0
+ 706 0054 D6F80080 		ldr	r8, [r6]
+ 707 0058 08F10303 		add	r3, r8, #3
+ 708 005c 56F82390 		ldr	r9, [r6, r3, lsl #2]
+ 709 0060 2046     		mov	r0, r4
+ 710 0062 FFF7FEFF 		bl	strlen
+ 711              	.LVL80:
+ 712 0066 0130     		adds	r0, r0, #1
+ 713 0068 4844     		add	r0, r0, r9
+ 714 006a 08F10408 		add	r8, r8, #4
+ 715 006e 46F82800 		str	r0, [r6, r8, lsl #2]
+ 716 0072 2CE0     		b	.L75
+ 717              	.L74:
+ 116:Src/cli.c     **** 				parameter ++;
+ 718              		.loc 1 116 0
+ 719 0074 631C     		adds	r3, r4, #1
+ 720 0076 47F8043B 		str	r3, [r7], #4
+ 721              	.LVL81:
+ 722 007a 28E0     		b	.L75
+ 723              	.LVL82:
+ 724              	.L73:
+ 122:Src/cli.c     **** 			{
+ 725              		.loc 1 122 0
+ 726 007c 2046     		mov	r0, r4
+ 727              	.LVL83:
+ 728 007e 1A49     		ldr	r1, .L80+4
+ 729 0080 0422     		movs	r2, #4
+ 730 0082 FFF7FEFF 		bl	strncmp
+ 731              	.LVL84:
+ 732 0086 F0B1     		cbz	r0, .L76
+ 124:Src/cli.c     **** 				*(gCmdParamInfo.argv[gCmdParamInfo.argc ++] + (strend - strtop)) = '\0';
+ 733              		.loc 1 124 0
+ 734 0088 164E     		ldr	r6, .L80
+ 735 008a 3368     		ldr	r3, [r6]
+ 736 008c C4EB0508 		rsb	r8, r4, r5
+ 737 0090 0433     		adds	r3, r3, #4
+ 738 0092 56F82300 		ldr	r0, [r6, r3, lsl #2]
+ 739 0096 2146     		mov	r1, r4
+ 740 0098 4246     		mov	r2, r8
+ 741 009a FFF7FEFF 		bl	strncpy
+ 742              	.LVL85:
+ 125:Src/cli.c     **** 				gCmdParamInfo.argv[gCmdParamInfo.argc] = gCmdParamInfo.argv[gCmdParamInfo.argc - 1] + (strend -
+ 743              		.loc 1 125 0
+ 744 009e 3368     		ldr	r3, [r6]
+ 745 00a0 5A1C     		adds	r2, r3, #1
+ 746 00a2 3260     		str	r2, [r6]
+ARM GAS  /tmp/ccfikaZY.s 			page 23
+
+
+ 747 00a4 0433     		adds	r3, r3, #4
+ 748 00a6 56F82330 		ldr	r3, [r6, r3, lsl #2]
+ 749 00aa 0022     		movs	r2, #0
+ 750 00ac 03F80820 		strb	r2, [r3, r8]
+ 126:Src/cli.c     **** 			}
+ 751              		.loc 1 126 0
+ 752 00b0 3168     		ldr	r1, [r6]
+ 753 00b2 CB1C     		adds	r3, r1, #3
+ 754 00b4 56F82330 		ldr	r3, [r6, r3, lsl #2]
+ 755 00b8 08F10102 		add	r2, r8, #1
+ 756 00bc 1344     		add	r3, r3, r2
+ 757 00be 0431     		adds	r1, r1, #4
+ 758 00c0 46F82130 		str	r3, [r6, r1, lsl #2]
+ 759 00c4 02E0     		b	.L77
+ 760              	.L76:
+ 130:Src/cli.c     **** 				parameter ++;
+ 761              		.loc 1 130 0
+ 762 00c6 0134     		adds	r4, r4, #1
+ 763              	.LVL86:
+ 764 00c8 47F8044B 		str	r4, [r7], #4
+ 765              	.LVL87:
+ 766              	.L77:
+ 133:Src/cli.c     **** 		}
+ 767              		.loc 1 133 0
+ 768 00cc 6C1C     		adds	r4, r5, #1
+ 769              	.LVL88:
+ 770              	.L75:
+ 136:Src/cli.c     **** 	gCmdParamInfo.argv[gCmdParamInfo.argc][0] = '\0';
+ 771              		.loc 1 136 0
+ 772 00ce 002D     		cmp	r5, #0
+ 773 00d0 A0D1     		bne	.L78
+ 137:Src/cli.c     **** }
+ 774              		.loc 1 137 0
+ 775 00d2 044A     		ldr	r2, .L80
+ 776 00d4 1368     		ldr	r3, [r2]
+ 777 00d6 0433     		adds	r3, r3, #4
+ 778 00d8 52F82330 		ldr	r3, [r2, r3, lsl #2]
+ 779 00dc 0022     		movs	r2, #0
+ 780 00de 1A70     		strb	r2, [r3]
+ 781 00e0 BDE8F883 		pop	{r3, r4, r5, r6, r7, r8, r9, pc}
+ 782              	.LVL89:
+ 783              	.L81:
+ 784              		.align	2
+ 785              	.L80:
+ 786 00e4 00000000 		.word	gCmdParamInfo
+ 787 00e8 54000000 		.word	.LC3
+ 788              		.cfi_endproc
+ 789              	.LFE69:
+ 791              		.section	.text.cli_ProcessCommand,"ax",%progbits
+ 792              		.align	2
+ 793              		.thumb
+ 794              		.thumb_func
+ 796              	cli_ProcessCommand:
+ 797              	.LFB77:
+ 382:Src/cli.c     **** 	HAL_StatusTypeDef ret = HAL_OK;
+ 798              		.loc 1 382 0
+ 799              		.cfi_startproc
+ARM GAS  /tmp/ccfikaZY.s 			page 24
+
+
+ 800              		@ args = 0, pretend = 0, frame = 40
+ 801              		@ frame_needed = 0, uses_anonymous_args = 0
+ 802              	.LVL90:
+ 803 0000 10B5     		push	{r4, lr}
+ 804              	.LCFI7:
+ 805              		.cfi_def_cfa_offset 8
+ 806              		.cfi_offset 4, -8
+ 807              		.cfi_offset 14, -4
+ 808 0002 8AB0     		sub	sp, sp, #40
+ 809              	.LCFI8:
+ 810              		.cfi_def_cfa_offset 48
+ 811 0004 0446     		mov	r4, r0
+ 812              	.LVL91:
+ 385:Src/cli.c     **** 	char **prt = parameter;
+ 813              		.loc 1 385 0
+ 814 0006 0023     		movs	r3, #0
+ 815 0008 0093     		str	r3, [sp]
+ 816 000a 0193     		str	r3, [sp, #4]
+ 817 000c 0293     		str	r3, [sp, #8]
+ 818 000e 0393     		str	r3, [sp, #12]
+ 819 0010 0493     		str	r3, [sp, #16]
+ 820 0012 0593     		str	r3, [sp, #20]
+ 821 0014 0693     		str	r3, [sp, #24]
+ 822 0016 0793     		str	r3, [sp, #28]
+ 823 0018 0893     		str	r3, [sp, #32]
+ 824 001a 0993     		str	r3, [sp, #36]
+ 825              	.LVL92:
+ 388:Src/cli.c     **** 	cli_format_cmd(str,prt);	 //�ָ��ַ���  -all����ӵ�char** argv
+ 826              		.loc 1 388 0
+ 827 001c FFF7FEFF 		bl	cli_write_history_cmd
+ 828              	.LVL93:
+ 389:Src/cli.c     **** 
+ 829              		.loc 1 389 0
+ 830 0020 2046     		mov	r0, r4
+ 831 0022 6946     		mov	r1, sp
+ 832 0024 FFF7FEFF 		bl	cli_format_cmd
+ 833              	.LVL94:
+ 391:Src/cli.c     **** 	if(command != NULL)
+ 834              		.loc 1 391 0
+ 835 0028 2046     		mov	r0, r4
+ 836 002a FFF7FEFF 		bl	CLICommandSeek
+ 837              	.LVL95:
+ 392:Src/cli.c     **** 	{
+ 838              		.loc 1 392 0
+ 839 002e 68B1     		cbz	r0, .L83
+ 394:Src/cli.c     **** 		if(HAL_OK != ret)
+ 840              		.loc 1 394 0
+ 841 0030 4368     		ldr	r3, [r0, #4]
+ 842 0032 0949     		ldr	r1, .L87
+ 843 0034 51F8100B 		ldr	r0, [r1], #16
+ 844              	.LVL96:
+ 845 0038 9847     		blx	r3
+ 846              	.LVL97:
+ 395:Src/cli.c     **** 		{
+ 847              		.loc 1 395 0
+ 848 003a 18B1     		cbz	r0, .L84
+ 397:Src/cli.c     **** 		}
+ARM GAS  /tmp/ccfikaZY.s 			page 25
+
+
+ 849              		.loc 1 397 0
+ 850 003c 0748     		ldr	r0, .L87+4
+ 851              	.LVL98:
+ 852 003e FFF7FEFF 		bl	vOutputString
+ 853              	.LVL99:
+ 854 0042 06E0     		b	.L82
+ 855              	.LVL100:
+ 856              	.L84:
+ 401:Src/cli.c     **** 		}
+ 857              		.loc 1 401 0
+ 858 0044 0648     		ldr	r0, .L87+8
+ 859              	.LVL101:
+ 860 0046 FFF7FEFF 		bl	vOutputString
+ 861              	.LVL102:
+ 862 004a 02E0     		b	.L82
+ 863              	.LVL103:
+ 864              	.L83:
+ 406:Src/cli.c     **** 	}
+ 865              		.loc 1 406 0
+ 866 004c 0548     		ldr	r0, .L87+12
+ 867              	.LVL104:
+ 868 004e FFF7FEFF 		bl	vOutputString
+ 869              	.LVL105:
+ 870              	.L82:
+ 408:Src/cli.c     **** static HAL_StatusTypeDef prvDispHelpConfig()  //�����������
+ 871              		.loc 1 408 0
+ 872 0052 0AB0     		add	sp, sp, #40
+ 873              	.LCFI9:
+ 874              		.cfi_def_cfa_offset 8
+ 875              	.LVL106:
+ 876              		@ sp needed
+ 877 0054 10BD     		pop	{r4, pc}
+ 878              	.LVL107:
+ 879              	.L88:
+ 880 0056 00BF     		.align	2
+ 881              	.L87:
+ 882 0058 00000000 		.word	gCmdParamInfo
+ 883 005c 5C000000 		.word	.LC4
+ 884 0060 78000000 		.word	.LC5
+ 885 0064 90000000 		.word	.LC6
+ 886              		.cfi_endproc
+ 887              	.LFE77:
+ 889              		.section	.text.vOutputChar,"ax",%progbits
+ 890              		.align	2
+ 891              		.thumb
+ 892              		.thumb_func
+ 894              	vOutputChar:
+ 895              	.LFB64:
+  40:Src/cli.c     **** 	printf("%c",ch);
+ 896              		.loc 1 40 0
+ 897              		.cfi_startproc
+ 898              		@ args = 0, pretend = 0, frame = 0
+ 899              		@ frame_needed = 0, uses_anonymous_args = 0
+ 900              	.LVL108:
+ 901 0000 08B5     		push	{r3, lr}
+ 902              	.LCFI10:
+ 903              		.cfi_def_cfa_offset 8
+ARM GAS  /tmp/ccfikaZY.s 			page 26
+
+
+ 904              		.cfi_offset 3, -8
+ 905              		.cfi_offset 14, -4
+  41:Src/cli.c     **** }
+ 906              		.loc 1 41 0
+ 907 0002 FFF7FEFF 		bl	putchar
+ 908              	.LVL109:
+ 909 0006 08BD     		pop	{r3, pc}
+ 910              		.cfi_endproc
+ 911              	.LFE64:
+ 913              		.section	.text.cli_backspace,"ax",%progbits
+ 914              		.align	2
+ 915              		.thumb
+ 916              		.thumb_func
+ 918              	cli_backspace:
+ 919              	.LFB73:
+ 218:Src/cli.c     **** 	char str[CMD_MAX_LENG];
+ 920              		.loc 1 218 0
+ 921              		.cfi_startproc
+ 922              		@ args = 0, pretend = 0, frame = 256
+ 923              		@ frame_needed = 0, uses_anonymous_args = 0
+ 222:Src/cli.c     **** 	{
+ 924              		.loc 1 222 0
+ 925 0000 244B     		ldr	r3, .L99
+ 926 0002 9A68     		ldr	r2, [r3, #8]
+ 927 0004 03F5B073 		add	r3, r3, #352
+ 928 0008 9A42     		cmp	r2, r3
+ 929 000a 41D0     		beq	.L98
+ 218:Src/cli.c     **** 	char str[CMD_MAX_LENG];
+ 930              		.loc 1 218 0
+ 931 000c 30B5     		push	{r4, r5, lr}
+ 932              	.LCFI11:
+ 933              		.cfi_def_cfa_offset 12
+ 934              		.cfi_offset 4, -12
+ 935              		.cfi_offset 5, -8
+ 936              		.cfi_offset 14, -4
+ 937 000e C1B0     		sub	sp, sp, #260
+ 938              	.LCFI12:
+ 939              		.cfi_def_cfa_offset 272
+ 940              	.L96:
+ 226:Src/cli.c     **** 			{
+ 941              		.loc 1 226 0
+ 942 0010 204B     		ldr	r3, .L99
+ 943 0012 9A68     		ldr	r2, [r3, #8]
+ 944 0014 03F5B073 		add	r3, r3, #352
+ 945 0018 9A42     		cmp	r2, r3
+ 946 001a 06D1     		bne	.L93
+ 228:Src/cli.c     **** 				gCmdParamInfo.cmdBufCursor ++;
+ 947              		.loc 1 228 0
+ 948 001c 1E48     		ldr	r0, .L99+4
+ 949 001e FFF7FEFF 		bl	vOutputString
+ 950              	.LVL110:
+ 229:Src/cli.c     **** 			}
+ 951              		.loc 1 229 0
+ 952 0022 1C4A     		ldr	r2, .L99
+ 953 0024 9368     		ldr	r3, [r2, #8]
+ 954 0026 0133     		adds	r3, r3, #1
+ 955 0028 9360     		str	r3, [r2, #8]
+ARM GAS  /tmp/ccfikaZY.s 			page 27
+
+
+ 956              	.L93:
+ 231:Src/cli.c     **** 			gCmdParamInfo.cmdBufCursor --;
+ 957              		.loc 1 231 0
+ 958 002a 1A4D     		ldr	r5, .L99
+ 959 002c AC68     		ldr	r4, [r5, #8]
+ 960 002e 6846     		mov	r0, sp
+ 961 0030 2146     		mov	r1, r4
+ 962 0032 FFF7FEFF 		bl	strcpy
+ 963              	.LVL111:
+ 232:Src/cli.c     **** 			gCmdParamInfo.cmdBufTail --;
+ 964              		.loc 1 232 0
+ 965 0036 013C     		subs	r4, r4, #1
+ 966 0038 AC60     		str	r4, [r5, #8]
+ 233:Src/cli.c     **** 			memcpy((gCmdParamInfo.cmdBufCursor),str,strlen(str)+1);
+ 967              		.loc 1 233 0
+ 968 003a 6B68     		ldr	r3, [r5, #4]
+ 969 003c 013B     		subs	r3, r3, #1
+ 970 003e 6B60     		str	r3, [r5, #4]
+ 234:Src/cli.c     **** 
+ 971              		.loc 1 234 0
+ 972 0040 6846     		mov	r0, sp
+ 973 0042 FFF7FEFF 		bl	strlen
+ 974              	.LVL112:
+ 975 0046 421C     		adds	r2, r0, #1
+ 976 0048 2046     		mov	r0, r4
+ 977 004a 6946     		mov	r1, sp
+ 978 004c FFF7FEFF 		bl	memcpy
+ 979              	.LVL113:
+ 236:Src/cli.c     **** 			vOutputString(str);
+ 980              		.loc 1 236 0
+ 981 0050 1248     		ldr	r0, .L99+8
+ 982 0052 FFF7FEFF 		bl	vOutputString
+ 983              	.LVL114:
+ 237:Src/cli.c     **** 			vOutputString(" \b");
+ 984              		.loc 1 237 0
+ 985 0056 6846     		mov	r0, sp
+ 986 0058 FFF7FEFF 		bl	vOutputString
+ 987              	.LVL115:
+ 238:Src/cli.c     **** 
+ 988              		.loc 1 238 0
+ 989 005c 1048     		ldr	r0, .L99+12
+ 990 005e FFF7FEFF 		bl	vOutputString
+ 991              	.LVL116:
+ 240:Src/cli.c     **** 			{
+ 992              		.loc 1 240 0
+ 993 0062 6846     		mov	r0, sp
+ 994 0064 FFF7FEFF 		bl	strlen
+ 995              	.LVL117:
+ 996 0068 84B2     		uxth	r4, r0
+ 997              	.LVL118:
+ 998 006a 04E0     		b	.L94
+ 999              	.L95:
+ 242:Src/cli.c     **** 			}
+ 1000              		.loc 1 242 0 discriminator 3
+ 1001 006c 0820     		movs	r0, #8
+ 1002 006e FFF7FEFF 		bl	vOutputChar
+ 1003              	.LVL119:
+ARM GAS  /tmp/ccfikaZY.s 			page 28
+
+
+ 240:Src/cli.c     **** 			{
+ 1004              		.loc 1 240 0 discriminator 3
+ 1005 0072 013C     		subs	r4, r4, #1
+ 1006              	.LVL120:
+ 1007 0074 A4B2     		uxth	r4, r4
+ 1008              	.LVL121:
+ 1009              	.L94:
+ 240:Src/cli.c     **** 			{
+ 1010              		.loc 1 240 0 is_stmt 0 discriminator 1
+ 1011 0076 002C     		cmp	r4, #0
+ 1012 0078 F8D1     		bne	.L95
+ 245:Src/cli.c     **** 	}
+ 1013              		.loc 1 245 0 is_stmt 1
+ 1014 007a 064B     		ldr	r3, .L99
+ 1015 007c 9A68     		ldr	r2, [r3, #8]
+ 1016 007e 03F5B073 		add	r3, r3, #352
+ 1017 0082 9A42     		cmp	r2, r3
+ 1018 0084 02D1     		bne	.L91
+ 245:Src/cli.c     **** 	}
+ 1019              		.loc 1 245 0 is_stmt 0 discriminator 1
+ 1020 0086 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 1021 0088 202B     		cmp	r3, #32
+ 1022 008a C1D0     		beq	.L96
+ 1023              	.L91:
+ 247:Src/cli.c     **** 
+ 1024              		.loc 1 247 0 is_stmt 1
+ 1025 008c 41B0     		add	sp, sp, #260
+ 1026              	.LCFI13:
+ 1027              		.cfi_def_cfa_offset 12
+ 1028              		@ sp needed
+ 1029 008e 30BD     		pop	{r4, r5, pc}
+ 1030              	.LVL122:
+ 1031              	.L98:
+ 1032              	.LCFI14:
+ 1033              		.cfi_def_cfa_offset 0
+ 1034              		.cfi_restore 4
+ 1035              		.cfi_restore 5
+ 1036              		.cfi_restore 14
+ 1037 0090 7047     		bx	lr
+ 1038              	.L100:
+ 1039 0092 00BF     		.align	2
+ 1040              	.L99:
+ 1041 0094 00000000 		.word	gCmdParamInfo
+ 1042 0098 E0000000 		.word	.LC7
+ 1043 009c E4000000 		.word	.LC8
+ 1044 00a0 E8000000 		.word	.LC9
+ 1045              		.cfi_endproc
+ 1046              	.LFE73:
+ 1048              		.section	.text.cli_read_history_cmd,"ax",%progbits
+ 1049              		.align	2
+ 1050              		.thumb
+ 1051              		.thumb_func
+ 1053              	cli_read_history_cmd:
+ 1054              	.LFB71:
+ 159:Src/cli.c     **** 	int i;
+ 1055              		.loc 1 159 0
+ 1056              		.cfi_startproc
+ARM GAS  /tmp/ccfikaZY.s 			page 29
+
+
+ 1057              		@ args = 0, pretend = 0, frame = 0
+ 1058              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1059              	.LVL123:
+ 1060 0000 38B5     		push	{r3, r4, r5, lr}
+ 1061              	.LCFI15:
+ 1062              		.cfi_def_cfa_offset 16
+ 1063              		.cfi_offset 3, -16
+ 1064              		.cfi_offset 4, -12
+ 1065              		.cfi_offset 5, -8
+ 1066              		.cfi_offset 14, -4
+ 1067              	.LVL124:
+ 164:Src/cli.c     **** 	{
+ 1068              		.loc 1 164 0
+ 1069 0002 03E0     		b	.L102
+ 1070              	.L104:
+ 166:Src/cli.c     **** 	}
+ 1071              		.loc 1 166 0
+ 1072 0004 013B     		subs	r3, r3, #1
+ 1073 0006 294A     		ldr	r2, .L111
+ 1074 0008 82F86037 		strb	r3, [r2, #1888]
+ 1075              	.L102:
+ 164:Src/cli.c     **** 	{
+ 1076              		.loc 1 164 0
+ 1077 000c 274A     		ldr	r2, .L111
+ 1078 000e 92F86037 		ldrb	r3, [r2, #1888]	@ zero_extendqisi2
+ 1079 0012 1946     		mov	r1, r3
+ 1080 0014 02EB0322 		add	r2, r2, r3, lsl #8
+ 1081 0018 92F86022 		ldrb	r2, [r2, #608]	@ zero_extendqisi2
+ 1082 001c 0AB9     		cbnz	r2, .L103
+ 164:Src/cli.c     **** 	{
+ 1083              		.loc 1 164 0 is_stmt 0 discriminator 1
+ 1084 001e 002B     		cmp	r3, #0
+ 1085 0020 F0D1     		bne	.L104
+ 1086              	.L103:
+ 169:Src/cli.c     **** 	{
+ 1087              		.loc 1 169 0 is_stmt 1
+ 1088 0022 224B     		ldr	r3, .L111
+ 1089 0024 03EB0121 		add	r1, r3, r1, lsl #8
+ 1090 0028 91F86032 		ldrb	r3, [r1, #608]	@ zero_extendqisi2
+ 1091 002c 002B     		cmp	r3, #0
+ 1092 002e 3BD0     		beq	.L101
+ 171:Src/cli.c     **** 		{
+ 1093              		.loc 1 171 0
+ 1094 0030 1E4B     		ldr	r3, .L111
+ 1095 0032 9868     		ldr	r0, [r3, #8]
+ 1096 0034 FFF7FEFF 		bl	strlen
+ 1097              	.LVL125:
+ 1098 0038 0446     		mov	r4, r0
+ 1099              	.LVL126:
+ 1100 003a 03E0     		b	.L106
+ 1101              	.LVL127:
+ 1102              	.L107:
+ 173:Src/cli.c     **** 		}
+ 1103              		.loc 1 173 0 discriminator 3
+ 1104 003c 2020     		movs	r0, #32
+ 1105 003e FFF7FEFF 		bl	vOutputChar
+ 1106              	.LVL128:
+ARM GAS  /tmp/ccfikaZY.s 			page 30
+
+
+ 171:Src/cli.c     **** 		{
+ 1107              		.loc 1 171 0 discriminator 3
+ 1108 0042 013C     		subs	r4, r4, #1
+ 1109              	.LVL129:
+ 1110              	.L106:
+ 171:Src/cli.c     **** 		{
+ 1111              		.loc 1 171 0 is_stmt 0 discriminator 1
+ 1112 0044 002C     		cmp	r4, #0
+ 1113 0046 F9DC     		bgt	.L107
+ 176:Src/cli.c     **** 		{
+ 1114              		.loc 1 176 0 is_stmt 1
+ 1115 0048 1948     		ldr	r0, .L111+4
+ 1116 004a FFF7FEFF 		bl	strlen
+ 1117              	.LVL130:
+ 1118 004e 0446     		mov	r4, r0
+ 1119              	.LVL131:
+ 1120 0050 03E0     		b	.L108
+ 1121              	.LVL132:
+ 1122              	.L109:
+ 178:Src/cli.c     **** 		}
+ 1123              		.loc 1 178 0 discriminator 3
+ 1124 0052 1848     		ldr	r0, .L111+8
+ 1125 0054 FFF7FEFF 		bl	vOutputString
+ 1126              	.LVL133:
+ 176:Src/cli.c     **** 		{
+ 1127              		.loc 1 176 0 discriminator 3
+ 1128 0058 013C     		subs	r4, r4, #1
+ 1129              	.LVL134:
+ 1130              	.L108:
+ 176:Src/cli.c     **** 		{
+ 1131              		.loc 1 176 0 is_stmt 0 discriminator 1
+ 1132 005a 002C     		cmp	r4, #0
+ 1133 005c F9DC     		bgt	.L109
+ 181:Src/cli.c     **** 		gCmdParamInfo.cmdBufCursor = gCmdParamInfo.cmdBuf + strlen(&gCmdParamInfo.historyCmd.cmdBuf[gCmdP
+ 1134              		.loc 1 181 0 is_stmt 1
+ 1135 005e 134C     		ldr	r4, .L111
+ 1136              	.LVL135:
+ 1137 0060 94F86017 		ldrb	r1, [r4, #1888]	@ zero_extendqisi2
+ 1138 0064 04EB0121 		add	r1, r4, r1, lsl #8
+ 1139 0068 04F5B075 		add	r5, r4, #352
+ 1140 006c 2846     		mov	r0, r5
+ 1141 006e 01F51871 		add	r1, r1, #608
+ 1142 0072 FFF7FEFF 		bl	strcpy
+ 1143              	.LVL136:
+ 182:Src/cli.c     **** 		gCmdParamInfo.cmdBufTail   = gCmdParamInfo.cmdBufCursor;
+ 1144              		.loc 1 182 0
+ 1145 0076 94F86007 		ldrb	r0, [r4, #1888]	@ zero_extendqisi2
+ 1146 007a 04EB0020 		add	r0, r4, r0, lsl #8
+ 1147 007e 00F51870 		add	r0, r0, #608
+ 1148 0082 FFF7FEFF 		bl	strlen
+ 1149              	.LVL137:
+ 1150 0086 00F5B070 		add	r0, r0, #352
+ 1151 008a 2044     		add	r0, r0, r4
+ 1152 008c A060     		str	r0, [r4, #8]
+ 183:Src/cli.c     **** 		vOutputString(gCmdParamInfo.cmdBuf);
+ 1153              		.loc 1 183 0
+ 1154 008e 6060     		str	r0, [r4, #4]
+ARM GAS  /tmp/ccfikaZY.s 			page 31
+
+
+ 184:Src/cli.c     **** 
+ 1155              		.loc 1 184 0
+ 1156 0090 2846     		mov	r0, r5
+ 1157 0092 FFF7FEFF 		bl	vOutputString
+ 1158              	.LVL138:
+ 186:Src/cli.c     **** 		{
+ 1159              		.loc 1 186 0
+ 1160 0096 94F86037 		ldrb	r3, [r4, #1888]	@ zero_extendqisi2
+ 1161 009a 5A1E     		subs	r2, r3, #1
+ 1162 009c 84F86027 		strb	r2, [r4, #1888]
+ 1163 00a0 13B9     		cbnz	r3, .L101
+ 188:Src/cli.c     **** 		}
+ 1164              		.loc 1 188 0
+ 1165 00a2 0422     		movs	r2, #4
+ 1166 00a4 84F86027 		strb	r2, [r4, #1888]
+ 1167              	.L101:
+ 1168 00a8 38BD     		pop	{r3, r4, r5, pc}
+ 1169              	.L112:
+ 1170 00aa 00BF     		.align	2
+ 1171              	.L111:
+ 1172 00ac 00000000 		.word	gCmdParamInfo
+ 1173 00b0 60010000 		.word	gCmdParamInfo+352
+ 1174 00b4 E4000000 		.word	.LC8
+ 1175              		.cfi_endproc
+ 1176              	.LFE71:
+ 1178              		.section	.text.cli_direction,"ax",%progbits
+ 1179              		.align	2
+ 1180              		.thumb
+ 1181              		.thumb_func
+ 1183              	cli_direction:
+ 1184              	.LFB74:
+ 250:Src/cli.c     **** 	switch(ReadChar)
+ 1185              		.loc 1 250 0
+ 1186              		.cfi_startproc
+ 1187              		@ args = 0, pretend = 0, frame = 0
+ 1188              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1189              	.LVL139:
+ 1190 0000 08B5     		push	{r3, lr}
+ 1191              	.LCFI16:
+ 1192              		.cfi_def_cfa_offset 8
+ 1193              		.cfi_offset 3, -8
+ 1194              		.cfi_offset 14, -4
+ 251:Src/cli.c     **** 	{
+ 1195              		.loc 1 251 0
+ 1196 0002 4138     		subs	r0, r0, #65
+ 1197              	.LVL140:
+ 1198 0004 0328     		cmp	r0, #3
+ 1199 0006 30D8     		bhi	.L113
+ 1200 0008 DFE800F0 		tbb	[pc, r0]
+ 1201              	.L116:
+ 1202 000c 02       		.byte	(.L115-.L116)/2
+ 1203 000d 06       		.byte	(.L117-.L116)/2
+ 1204 000e 0A       		.byte	(.L118-.L116)/2
+ 1205 000f 1C       		.byte	(.L119-.L116)/2
+ 1206              		.p2align 1
+ 1207              	.L115:
+ 255:Src/cli.c     **** 			break;
+ARM GAS  /tmp/ccfikaZY.s 			page 32
+
+
+ 1208              		.loc 1 255 0
+ 1209 0010 0020     		movs	r0, #0
+ 1210 0012 FFF7FEFF 		bl	cli_read_history_cmd
+ 1211              	.LVL141:
+ 256:Src/cli.c     **** 		}
+ 1212              		.loc 1 256 0
+ 1213 0016 08BD     		pop	{r3, pc}
+ 1214              	.L117:
+ 260:Src/cli.c     **** 			break;
+ 1215              		.loc 1 260 0
+ 1216 0018 0120     		movs	r0, #1
+ 1217 001a FFF7FEFF 		bl	cli_read_history_cmd
+ 1218              	.LVL142:
+ 261:Src/cli.c     **** 		}
+ 1219              		.loc 1 261 0
+ 1220 001e 08BD     		pop	{r3, pc}
+ 1221              	.L118:
+ 265:Src/cli.c     **** 			{
+ 1222              		.loc 1 265 0
+ 1223 0020 124B     		ldr	r3, .L121
+ 1224 0022 9B68     		ldr	r3, [r3, #8]
+ 1225 0024 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1226 0026 03B3     		cbz	r3, .L113
+ 267:Src/cli.c     **** 				vOutputChar(0x5b);
+ 1227              		.loc 1 267 0
+ 1228 0028 1B20     		movs	r0, #27
+ 1229 002a FFF7FEFF 		bl	vOutputChar
+ 1230              	.LVL143:
+ 268:Src/cli.c     **** 				vOutputChar('C');
+ 1231              		.loc 1 268 0
+ 1232 002e 5B20     		movs	r0, #91
+ 1233 0030 FFF7FEFF 		bl	vOutputChar
+ 1234              	.LVL144:
+ 269:Src/cli.c     **** 				gCmdParamInfo.cmdBufCursor++;
+ 1235              		.loc 1 269 0
+ 1236 0034 4320     		movs	r0, #67
+ 1237 0036 FFF7FEFF 		bl	vOutputChar
+ 1238              	.LVL145:
+ 270:Src/cli.c     **** 			}
+ 1239              		.loc 1 270 0
+ 1240 003a 0C4A     		ldr	r2, .L121
+ 1241 003c 9368     		ldr	r3, [r2, #8]
+ 1242 003e 0133     		adds	r3, r3, #1
+ 1243 0040 9360     		str	r3, [r2, #8]
+ 1244 0042 08BD     		pop	{r3, pc}
+ 1245              	.L119:
+ 276:Src/cli.c     **** 			{
+ 1246              		.loc 1 276 0
+ 1247 0044 094B     		ldr	r3, .L121
+ 1248 0046 9A68     		ldr	r2, [r3, #8]
+ 1249 0048 03F5B073 		add	r3, r3, #352
+ 1250 004c 9A42     		cmp	r2, r3
+ 1251 004e 0CD0     		beq	.L113
+ 278:Src/cli.c     **** 				vOutputChar(0x5b);
+ 1252              		.loc 1 278 0
+ 1253 0050 1B20     		movs	r0, #27
+ 1254 0052 FFF7FEFF 		bl	vOutputChar
+ARM GAS  /tmp/ccfikaZY.s 			page 33
+
+
+ 1255              	.LVL146:
+ 279:Src/cli.c     **** 				vOutputChar('D');
+ 1256              		.loc 1 279 0
+ 1257 0056 5B20     		movs	r0, #91
+ 1258 0058 FFF7FEFF 		bl	vOutputChar
+ 1259              	.LVL147:
+ 280:Src/cli.c     **** 				gCmdParamInfo.cmdBufCursor--;
+ 1260              		.loc 1 280 0
+ 1261 005c 4420     		movs	r0, #68
+ 1262 005e FFF7FEFF 		bl	vOutputChar
+ 1263              	.LVL148:
+ 281:Src/cli.c     **** 			}
+ 1264              		.loc 1 281 0
+ 1265 0062 024A     		ldr	r2, .L121
+ 1266 0064 9368     		ldr	r3, [r2, #8]
+ 1267 0066 013B     		subs	r3, r3, #1
+ 1268 0068 9360     		str	r3, [r2, #8]
+ 1269              	.L113:
+ 1270 006a 08BD     		pop	{r3, pc}
+ 1271              	.L122:
+ 1272              		.align	2
+ 1273              	.L121:
+ 1274 006c 00000000 		.word	gCmdParamInfo
+ 1275              		.cfi_endproc
+ 1276              	.LFE74:
+ 1278              		.section	.text.cli_cInput,"ax",%progbits
+ 1279              		.align	2
+ 1280              		.thumb
+ 1281              		.thumb_func
+ 1283              	cli_cInput:
+ 1284              	.LFB72:
+ 193:Src/cli.c     **** 	if(ReadChar == ' ' && (*gCmdParamInfo.cmdBufCursor == ' '|| \
+ 1285              		.loc 1 193 0
+ 1286              		.cfi_startproc
+ 1287              		@ args = 0, pretend = 0, frame = 256
+ 1288              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1289              	.LVL149:
+ 1290 0000 70B5     		push	{r4, r5, r6, lr}
+ 1291              	.LCFI17:
+ 1292              		.cfi_def_cfa_offset 16
+ 1293              		.cfi_offset 4, -16
+ 1294              		.cfi_offset 5, -12
+ 1295              		.cfi_offset 6, -8
+ 1296              		.cfi_offset 14, -4
+ 1297 0002 C0B0     		sub	sp, sp, #256
+ 1298              	.LCFI18:
+ 1299              		.cfi_def_cfa_offset 272
+ 1300 0004 0446     		mov	r4, r0
+ 194:Src/cli.c     **** 							(gCmdParamInfo.cmdBufCursor == gCmdParamInfo.cmdBuf) || \
+ 1301              		.loc 1 194 0
+ 1302 0006 2028     		cmp	r0, #32
+ 1303 0008 0BD1     		bne	.L124
+ 194:Src/cli.c     **** 							(gCmdParamInfo.cmdBufCursor == gCmdParamInfo.cmdBuf) || \
+ 1304              		.loc 1 194 0 is_stmt 0 discriminator 1
+ 1305 000a 1B4B     		ldr	r3, .L129
+ 1306 000c 9B68     		ldr	r3, [r3, #8]
+ 1307 000e 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ARM GAS  /tmp/ccfikaZY.s 			page 34
+
+
+ 1308 0010 202A     		cmp	r2, #32
+ 1309 0012 2FD0     		beq	.L123
+ 194:Src/cli.c     **** 							(gCmdParamInfo.cmdBufCursor == gCmdParamInfo.cmdBuf) || \
+ 1310              		.loc 1 194 0 discriminator 2
+ 1311 0014 194A     		ldr	r2, .L129+4
+ 1312 0016 9342     		cmp	r3, r2
+ 1313 0018 2CD0     		beq	.L123
+ 196:Src/cli.c     **** 	{
+ 1314              		.loc 1 196 0 is_stmt 1
+ 1315 001a 13F8013C 		ldrb	r3, [r3, #-1]	@ zero_extendqisi2
+ 195:Src/cli.c     **** 							(*(gCmdParamInfo.cmdBufCursor - 1) == ' ')))
+ 1316              		.loc 1 195 0
+ 1317 001e 202B     		cmp	r3, #32
+ 1318 0020 28D0     		beq	.L123
+ 1319              	.L124:
+ 1320              	.LBB2:
+ 204:Src/cli.c     **** 		memcpy((gCmdParamInfo.cmdBufCursor + 1),str,strlen(str) + 1);
+ 1321              		.loc 1 204 0
+ 1322 0022 154D     		ldr	r5, .L129
+ 1323 0024 AE68     		ldr	r6, [r5, #8]
+ 1324 0026 6846     		mov	r0, sp
+ 1325              	.LVL150:
+ 1326 0028 3146     		mov	r1, r6
+ 1327 002a FFF7FEFF 		bl	strcpy
+ 1328              	.LVL151:
+ 205:Src/cli.c     **** 		*gCmdParamInfo.cmdBufCursor = ReadChar;
+ 1329              		.loc 1 205 0
+ 1330 002e 6846     		mov	r0, sp
+ 1331 0030 FFF7FEFF 		bl	strlen
+ 1332              	.LVL152:
+ 1333 0034 421C     		adds	r2, r0, #1
+ 1334 0036 701C     		adds	r0, r6, #1
+ 1335 0038 6946     		mov	r1, sp
+ 1336 003a FFF7FEFF 		bl	memcpy
+ 1337              	.LVL153:
+ 206:Src/cli.c     **** 		vOutputChar(ReadChar);
+ 1338              		.loc 1 206 0
+ 1339 003e AB68     		ldr	r3, [r5, #8]
+ 1340 0040 1C70     		strb	r4, [r3]
+ 207:Src/cli.c     **** 		vOutputString(str);
+ 1341              		.loc 1 207 0
+ 1342 0042 2046     		mov	r0, r4
+ 1343 0044 FFF7FEFF 		bl	vOutputChar
+ 1344              	.LVL154:
+ 208:Src/cli.c     **** 		for(i = strlen(str) ; i > 0 ; i-- )
+ 1345              		.loc 1 208 0
+ 1346 0048 6846     		mov	r0, sp
+ 1347 004a FFF7FEFF 		bl	vOutputString
+ 1348              	.LVL155:
+ 209:Src/cli.c     **** 		{
+ 1349              		.loc 1 209 0
+ 1350 004e 6846     		mov	r0, sp
+ 1351 0050 FFF7FEFF 		bl	strlen
+ 1352              	.LVL156:
+ 1353 0054 84B2     		uxth	r4, r0
+ 1354              	.LVL157:
+ 1355 0056 04E0     		b	.L126
+ARM GAS  /tmp/ccfikaZY.s 			page 35
+
+
+ 1356              	.L127:
+ 211:Src/cli.c     **** 		}
+ 1357              		.loc 1 211 0 discriminator 3
+ 1358 0058 0820     		movs	r0, #8
+ 1359 005a FFF7FEFF 		bl	vOutputChar
+ 1360              	.LVL158:
+ 209:Src/cli.c     **** 		{
+ 1361              		.loc 1 209 0 discriminator 3
+ 1362 005e 013C     		subs	r4, r4, #1
+ 1363              	.LVL159:
+ 1364 0060 A4B2     		uxth	r4, r4
+ 1365              	.LVL160:
+ 1366              	.L126:
+ 209:Src/cli.c     **** 		{
+ 1367              		.loc 1 209 0 is_stmt 0 discriminator 1
+ 1368 0062 002C     		cmp	r4, #0
+ 1369 0064 F8D1     		bne	.L127
+ 213:Src/cli.c     **** 		gCmdParamInfo.cmdBufTail ++;
+ 1370              		.loc 1 213 0 is_stmt 1
+ 1371 0066 044B     		ldr	r3, .L129
+ 1372 0068 9A68     		ldr	r2, [r3, #8]
+ 1373 006a 0132     		adds	r2, r2, #1
+ 1374 006c 9A60     		str	r2, [r3, #8]
+ 214:Src/cli.c     **** 	}
+ 1375              		.loc 1 214 0
+ 1376 006e 5A68     		ldr	r2, [r3, #4]
+ 1377 0070 0132     		adds	r2, r2, #1
+ 1378 0072 5A60     		str	r2, [r3, #4]
+ 1379              	.LVL161:
+ 1380              	.L123:
+ 1381              	.LBE2:
+ 216:Src/cli.c     **** static void cli_backspace(void)
+ 1382              		.loc 1 216 0
+ 1383 0074 40B0     		add	sp, sp, #256
+ 1384              	.LCFI19:
+ 1385              		.cfi_def_cfa_offset 16
+ 1386              		@ sp needed
+ 1387 0076 70BD     		pop	{r4, r5, r6, pc}
+ 1388              	.L130:
+ 1389              		.align	2
+ 1390              	.L129:
+ 1391 0078 00000000 		.word	gCmdParamInfo
+ 1392 007c 60010000 		.word	gCmdParamInfo+352
+ 1393              		.cfi_endproc
+ 1394              	.LFE72:
+ 1396              		.section	.text.CLIParameterAdd,"ax",%progbits
+ 1397              		.align	2
+ 1398              		.global	CLIParameterAdd
+ 1399              		.thumb
+ 1400              		.thumb_func
+ 1402              	CLIParameterAdd:
+ 1403              	.LFB80:
+ 419:Src/cli.c     **** void CLI_info_init(void)	//CLI��ʼ������
+ 420:Src/cli.c     **** {
+ 421:Src/cli.c     **** 	gUsbParamInfo.read_ptr = gUsbParamInfo.cHandleBuf;
+ 422:Src/cli.c     **** 	gUsbParamInfo.write_ptr= gUsbParamInfo.cHandleBuf;
+ 423:Src/cli.c     **** 	memset(&gCmdParamInfo,'\0',sizeof(gCmdParamInfo));
+ARM GAS  /tmp/ccfikaZY.s 			page 36
+
+
+ 424:Src/cli.c     **** 	memset(&clilist,'\0',sizeof(clilist));
+ 425:Src/cli.c     **** 	gCmdParamInfo.outMessage = "\r\nbitohw :";
+ 426:Src/cli.c     **** 	cli_deinit();
+ 427:Src/cli.c     **** 	CLICommandAdd("help",prvDispHelpConfig);  //��Ӱ�������
+ 428:Src/cli.c     **** }
+ 429:Src/cli.c     **** 
+ 430:Src/cli.c     **** void CLIParameterAdd(char *str,Handle p)  //ע��ɱ��ַ�������
+ 431:Src/cli.c     **** {
+ 1404              		.loc 1 431 0
+ 1405              		.cfi_startproc
+ 1406              		@ args = 0, pretend = 0, frame = 0
+ 1407              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1408              		@ link register save eliminated.
+ 1409              	.LVL162:
+ 1410 0000 30B4     		push	{r4, r5}
+ 1411              	.LCFI20:
+ 1412              		.cfi_def_cfa_offset 8
+ 1413              		.cfi_offset 4, -8
+ 1414              		.cfi_offset 5, -4
+ 432:Src/cli.c     **** 	static uint16_t num = 0;
+ 433:Src/cli.c     **** 	clilist.parameter[num].str = str;
+ 1415              		.loc 1 433 0
+ 1416 0002 074C     		ldr	r4, .L133
+ 1417 0004 2388     		ldrh	r3, [r4]
+ 1418 0006 074A     		ldr	r2, .L133+4
+ 1419 0008 03F16405 		add	r5, r3, #100
+ 1420 000c 42F83500 		str	r0, [r2, r5, lsl #3]
+ 434:Src/cli.c     **** 	clilist.parameter[num].p   = p;
+ 1421              		.loc 1 434 0
+ 1422 0010 02EBC502 		add	r2, r2, r5, lsl #3
+ 1423 0014 5160     		str	r1, [r2, #4]
+ 435:Src/cli.c     **** 	num ++;
+ 1424              		.loc 1 435 0
+ 1425 0016 0133     		adds	r3, r3, #1
+ 1426 0018 2380     		strh	r3, [r4]	@ movhi
+ 436:Src/cli.c     **** }
+ 1427              		.loc 1 436 0
+ 1428 001a 30BC     		pop	{r4, r5}
+ 1429              	.LCFI21:
+ 1430              		.cfi_restore 5
+ 1431              		.cfi_restore 4
+ 1432              		.cfi_def_cfa_offset 0
+ 1433 001c 7047     		bx	lr
+ 1434              	.L134:
+ 1435 001e 00BF     		.align	2
+ 1436              	.L133:
+ 1437 0020 00000000 		.word	.LANCHOR1
+ 1438 0024 00000000 		.word	clilist
+ 1439              		.cfi_endproc
+ 1440              	.LFE80:
+ 1442              		.section	.text.CLICommandAdd,"ax",%progbits
+ 1443              		.align	2
+ 1444              		.global	CLICommandAdd
+ 1445              		.thumb
+ 1446              		.thumb_func
+ 1448              	CLICommandAdd:
+ 1449              	.LFB81:
+ARM GAS  /tmp/ccfikaZY.s 			page 37
+
+
+ 437:Src/cli.c     **** 
+ 438:Src/cli.c     **** uint16_t  *CLICommandAdd(char *str,Handle p)   //ע���������
+ 439:Src/cli.c     **** {
+ 1450              		.loc 1 439 0
+ 1451              		.cfi_startproc
+ 1452              		@ args = 0, pretend = 0, frame = 0
+ 1453              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1454              		@ link register save eliminated.
+ 1455              	.LVL163:
+ 1456 0000 10B4     		push	{r4}
+ 1457              	.LCFI22:
+ 1458              		.cfi_def_cfa_offset 4
+ 1459              		.cfi_offset 4, -4
+ 440:Src/cli.c     **** 	static uint16_t num = 0;
+ 441:Src/cli.c     **** 	clilist.command[num].str = str;
+ 1460              		.loc 1 441 0
+ 1461 0002 074C     		ldr	r4, .L137
+ 1462 0004 2388     		ldrh	r3, [r4]
+ 1463 0006 074A     		ldr	r2, .L137+4
+ 1464 0008 42F83300 		str	r0, [r2, r3, lsl #3]
+ 442:Src/cli.c     **** 	clilist.command[num].p	 = p;
+ 1465              		.loc 1 442 0
+ 1466 000c 02EBC302 		add	r2, r2, r3, lsl #3
+ 1467 0010 5160     		str	r1, [r2, #4]
+ 443:Src/cli.c     **** 	num ++;
+ 1468              		.loc 1 443 0
+ 1469 0012 0133     		adds	r3, r3, #1
+ 1470 0014 2380     		strh	r3, [r4]	@ movhi
+ 444:Src/cli.c     **** 	return &num;
+ 445:Src/cli.c     **** }
+ 1471              		.loc 1 445 0
+ 1472 0016 2046     		mov	r0, r4
+ 1473              	.LVL164:
+ 1474 0018 5DF8044B 		ldr	r4, [sp], #4
+ 1475              	.LCFI23:
+ 1476              		.cfi_restore 4
+ 1477              		.cfi_def_cfa_offset 0
+ 1478 001c 7047     		bx	lr
+ 1479              	.L138:
+ 1480 001e 00BF     		.align	2
+ 1481              	.L137:
+ 1482 0020 00000000 		.word	.LANCHOR2
+ 1483 0024 00000000 		.word	clilist
+ 1484              		.cfi_endproc
+ 1485              	.LFE81:
+ 1487              		.section	.text.CLI_info_init,"ax",%progbits
+ 1488              		.align	2
+ 1489              		.global	CLI_info_init
+ 1490              		.thumb
+ 1491              		.thumb_func
+ 1493              	CLI_info_init:
+ 1494              	.LFB79:
+ 420:Src/cli.c     **** 	gUsbParamInfo.read_ptr = gUsbParamInfo.cHandleBuf;
+ 1495              		.loc 1 420 0
+ 1496              		.cfi_startproc
+ 1497              		@ args = 0, pretend = 0, frame = 0
+ 1498              		@ frame_needed = 0, uses_anonymous_args = 0
+ARM GAS  /tmp/ccfikaZY.s 			page 38
+
+
+ 1499 0000 10B5     		push	{r4, lr}
+ 1500              	.LCFI24:
+ 1501              		.cfi_def_cfa_offset 8
+ 1502              		.cfi_offset 4, -8
+ 1503              		.cfi_offset 14, -4
+ 421:Src/cli.c     **** 	gUsbParamInfo.write_ptr= gUsbParamInfo.cHandleBuf;
+ 1504              		.loc 1 421 0
+ 1505 0002 0C4B     		ldr	r3, .L141
+ 1506 0004 5B66     		str	r3, [r3, #100]
+ 422:Src/cli.c     **** 	memset(&gCmdParamInfo,'\0',sizeof(gCmdParamInfo));
+ 1507              		.loc 1 422 0
+ 1508 0006 9B66     		str	r3, [r3, #104]
+ 423:Src/cli.c     **** 	memset(&clilist,'\0',sizeof(clilist));
+ 1509              		.loc 1 423 0
+ 1510 0008 0B4C     		ldr	r4, .L141+4
+ 1511 000a 2046     		mov	r0, r4
+ 1512 000c 0021     		movs	r1, #0
+ 1513 000e 40F26472 		movw	r2, #1892
+ 1514 0012 FFF7FEFF 		bl	memset
+ 1515              	.LVL165:
+ 424:Src/cli.c     **** 	gCmdParamInfo.outMessage = "\r\nbitohw :";
+ 1516              		.loc 1 424 0
+ 1517 0016 0948     		ldr	r0, .L141+8
+ 1518 0018 0021     		movs	r1, #0
+ 1519 001a 4FF4C862 		mov	r2, #1600
+ 1520 001e FFF7FEFF 		bl	memset
+ 1521              	.LVL166:
+ 425:Src/cli.c     **** 	cli_deinit();
+ 1522              		.loc 1 425 0
+ 1523 0022 074B     		ldr	r3, .L141+12
+ 1524 0024 E360     		str	r3, [r4, #12]
+ 426:Src/cli.c     **** 	CLICommandAdd("help",prvDispHelpConfig);  //��Ӱ�������
+ 1525              		.loc 1 426 0
+ 1526 0026 FFF7FEFF 		bl	cli_deinit
+ 1527              	.LVL167:
+ 427:Src/cli.c     **** }
+ 1528              		.loc 1 427 0
+ 1529 002a 0648     		ldr	r0, .L141+16
+ 1530 002c 0649     		ldr	r1, .L141+20
+ 1531 002e FFF7FEFF 		bl	CLICommandAdd
+ 1532              	.LVL168:
+ 1533 0032 10BD     		pop	{r4, pc}
+ 1534              	.L142:
+ 1535              		.align	2
+ 1536              	.L141:
+ 1537 0034 00000000 		.word	gUsbParamInfo
+ 1538 0038 00000000 		.word	gCmdParamInfo
+ 1539 003c 00000000 		.word	clilist
+ 1540 0040 EC000000 		.word	.LC10
+ 1541 0044 F8000000 		.word	.LC11
+ 1542 0048 00000000 		.word	prvDispHelpConfig
+ 1543              		.cfi_endproc
+ 1544              	.LFE79:
+ 1546              		.section	.text.read_cInput,"ax",%progbits
+ 1547              		.align	2
+ 1548              		.global	read_cInput
+ 1549              		.thumb
+ARM GAS  /tmp/ccfikaZY.s 			page 39
+
+
+ 1550              		.thumb_func
+ 1552              	read_cInput:
+ 1553              	.LFB83:
+ 446:Src/cli.c     **** 
+ 447:Src/cli.c     **** void CLI_event_handle() //CLI������
+ 448:Src/cli.c     **** {
+ 449:Src/cli.c     **** 	char ReadChar;
+ 450:Src/cli.c     **** 
+ 451:Src/cli.c     **** 	while((ReadChar = vGetchar(0)) != 0)
+ 452:Src/cli.c     **** 	{
+ 453:Src/cli.c     **** 		if(ReadChar == '\n' || ReadChar == '\r')
+ 454:Src/cli.c     **** 		{
+ 455:Src/cli.c     **** 			label = false;
+ 456:Src/cli.c     **** 			if((gCmdParamInfo.cmdBuf == gCmdParamInfo.cmdBufTail)||(gCmdParamInfo.cmdBuf[0] == ' ') )
+ 457:Src/cli.c     **** 			{
+ 458:Src/cli.c     **** 				vOutputString(gCmdParamInfo.outMessage);
+ 459:Src/cli.c     **** 			}
+ 460:Src/cli.c     **** 			else
+ 461:Src/cli.c     **** 			{
+ 462:Src/cli.c     **** 				if(*(-- gCmdParamInfo.cmdBufTail) == ' ')
+ 463:Src/cli.c     **** 				{
+ 464:Src/cli.c     **** 					*gCmdParamInfo.cmdBufTail = '\0';
+ 465:Src/cli.c     **** 				}
+ 466:Src/cli.c     **** 				cli_ProcessCommand(gCmdParamInfo.cmdBuf);  //����Ԥ���������ַ���
+ 467:Src/cli.c     **** 				cli_deinit(); 								//�����ն�
+ 468:Src/cli.c     **** 				vOutputString(gCmdParamInfo.outMessage);
+ 469:Src/cli.c     **** 			}
+ 470:Src/cli.c     **** 		}
+ 471:Src/cli.c     **** 		else
+ 472:Src/cli.c     **** 		{
+ 473:Src/cli.c     **** 			if((ReadChar >= '\b') && (ReadChar < ' '))
+ 474:Src/cli.c     **** 			{
+ 475:Src/cli.c     **** 				label = false;
+ 476:Src/cli.c     **** 				if(ReadChar == '\b')
+ 477:Src/cli.c     **** 				{
+ 478:Src/cli.c     **** 					cli_backspace();		//�����˸��
+ 479:Src/cli.c     **** 				}
+ 480:Src/cli.c     **** 				else if(ReadChar == 0x1b && vGetchar(0xffff) == 0x5b)
+ 481:Src/cli.c     **** 				{
+ 482:Src/cli.c     **** 					cli_direction(vGetchar(0xffff));  //�������
+ 483:Src/cli.c     **** 				}
+ 484:Src/cli.c     **** 			}
+ 485:Src/cli.c     **** 			else if((ReadChar >= ' ') && (ReadChar <= '~' ))
+ 486:Src/cli.c     **** 			{
+ 487:Src/cli.c     **** 				if(ReadChar == '#' || label == true)
+ 488:Src/cli.c     **** 				{
+ 489:Src/cli.c     **** 					label = true;
+ 490:Src/cli.c     **** 				}
+ 491:Src/cli.c     **** 				else if((gCmdParamInfo.cmdBufTail - gCmdParamInfo.cmdBuf) < (CMD_MAX_LENG - 1))
+ 492:Src/cli.c     **** 				{
+ 493:Src/cli.c     **** 					cli_cInput(ReadChar); //����ַ�����Ԥ��������
+ 494:Src/cli.c     **** 				}
+ 495:Src/cli.c     **** 			}
+ 496:Src/cli.c     **** 		}
+ 497:Src/cli.c     **** 	}
+ 498:Src/cli.c     **** }
+ 499:Src/cli.c     **** 
+ARM GAS  /tmp/ccfikaZY.s 			page 40
+
+
+ 500:Src/cli.c     **** char read_cInput(uint16_t time) //���жϻ�����
+ 501:Src/cli.c     **** {
+ 1554              		.loc 1 501 0
+ 1555              		.cfi_startproc
+ 1556              		@ args = 0, pretend = 0, frame = 0
+ 1557              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1558              		@ link register save eliminated.
+ 1559              	.LVL169:
+ 1560 0000 00E0     		b	.L147
+ 1561              	.LVL170:
+ 1562              	.L148:
+ 502:Src/cli.c     **** 	char ReadChar;
+ 503:Src/cli.c     **** 	do
+ 504:Src/cli.c     **** 	{
+ 505:Src/cli.c     **** 		if(	gUsbParamInfo.read_ptr != gUsbParamInfo.write_ptr)
+ 506:Src/cli.c     **** 		{
+ 507:Src/cli.c     **** 			ReadChar = *gUsbParamInfo.read_ptr;
+ 508:Src/cli.c     **** 			if(++ gUsbParamInfo.read_ptr == (gUsbParamInfo.cHandleBuf + UART_BUFF_LEN))
+ 509:Src/cli.c     **** 			{
+ 510:Src/cli.c     **** 				gUsbParamInfo.read_ptr = gUsbParamInfo.cHandleBuf;
+ 511:Src/cli.c     **** 			}
+ 512:Src/cli.c     **** 			return ReadChar;
+ 513:Src/cli.c     **** 		}
+ 514:Src/cli.c     **** 	}while(time-- != 0);
+ 1563              		.loc 1 514 0
+ 1564 0002 1846     		mov	r0, r3
+ 1565              	.LVL171:
+ 1566              	.L147:
+ 505:Src/cli.c     **** 		{
+ 1567              		.loc 1 505 0
+ 1568 0004 094B     		ldr	r3, .L149
+ 1569 0006 5A6E     		ldr	r2, [r3, #100]
+ 1570 0008 9B6E     		ldr	r3, [r3, #104]
+ 1571 000a 9A42     		cmp	r2, r3
+ 1572 000c 09D0     		beq	.L144
+ 507:Src/cli.c     **** 			if(++ gUsbParamInfo.read_ptr == (gUsbParamInfo.cHandleBuf + UART_BUFF_LEN))
+ 1573              		.loc 1 507 0
+ 1574 000e 12F8010B 		ldrb	r0, [r2], #1	@ zero_extendqisi2
+ 1575              	.LVL172:
+ 508:Src/cli.c     **** 			{
+ 1576              		.loc 1 508 0
+ 1577 0012 064B     		ldr	r3, .L149
+ 1578 0014 43F8642F 		str	r2, [r3, #100]!
+ 1579 0018 9A42     		cmp	r2, r3
+ 1580 001a 06D1     		bne	.L146
+ 510:Src/cli.c     **** 			}
+ 1581              		.loc 1 510 0
+ 1582 001c 034B     		ldr	r3, .L149
+ 1583 001e 5B66     		str	r3, [r3, #100]
+ 512:Src/cli.c     **** 		}
+ 1584              		.loc 1 512 0
+ 1585 0020 7047     		bx	lr
+ 1586              	.LVL173:
+ 1587              	.L144:
+ 1588              		.loc 1 514 0
+ 1589 0022 431E     		subs	r3, r0, #1
+ 1590 0024 9BB2     		uxth	r3, r3
+ARM GAS  /tmp/ccfikaZY.s 			page 41
+
+
+ 1591              	.LVL174:
+ 1592 0026 0028     		cmp	r0, #0
+ 1593 0028 EBD1     		bne	.L148
+ 1594              	.LVL175:
+ 1595              	.L146:
+ 515:Src/cli.c     **** 
+ 516:Src/cli.c     **** 	return 0;
+ 517:Src/cli.c     **** }
+ 1596              		.loc 1 517 0
+ 1597 002a 7047     		bx	lr
+ 1598              	.L150:
+ 1599              		.align	2
+ 1600              	.L149:
+ 1601 002c 00000000 		.word	gUsbParamInfo
+ 1602              		.cfi_endproc
+ 1603              	.LFE83:
+ 1605              		.section	.text.vGetchar,"ax",%progbits
+ 1606              		.align	2
+ 1607              		.global	vGetchar
+ 1608              		.thumb
+ 1609              		.thumb_func
+ 1611              	vGetchar:
+ 1612              	.LFB65:
+  44:Src/cli.c     **** 		return read_cInput(time);
+ 1613              		.loc 1 44 0
+ 1614              		.cfi_startproc
+ 1615              		@ args = 0, pretend = 0, frame = 0
+ 1616              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1617              	.LVL176:
+ 1618 0000 08B5     		push	{r3, lr}
+ 1619              	.LCFI25:
+ 1620              		.cfi_def_cfa_offset 8
+ 1621              		.cfi_offset 3, -8
+ 1622              		.cfi_offset 14, -4
+  45:Src/cli.c     **** }
+ 1623              		.loc 1 45 0
+ 1624 0002 FFF7FEFF 		bl	read_cInput
+ 1625              	.LVL177:
+  46:Src/cli.c     **** void prvUARTCommandConsoleTask(void const *pvParameters)
+ 1626              		.loc 1 46 0
+ 1627 0006 08BD     		pop	{r3, pc}
+ 1628              		.cfi_endproc
+ 1629              	.LFE65:
+ 1631              		.section	.text.CLI_event_handle,"ax",%progbits
+ 1632              		.align	2
+ 1633              		.global	CLI_event_handle
+ 1634              		.thumb
+ 1635              		.thumb_func
+ 1637              	CLI_event_handle:
+ 1638              	.LFB82:
+ 448:Src/cli.c     **** 	char ReadChar;
+ 1639              		.loc 1 448 0
+ 1640              		.cfi_startproc
+ 1641              		@ args = 0, pretend = 0, frame = 0
+ 1642              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1643 0000 10B5     		push	{r4, lr}
+ 1644              	.LCFI26:
+ARM GAS  /tmp/ccfikaZY.s 			page 42
+
+
+ 1645              		.cfi_def_cfa_offset 8
+ 1646              		.cfi_offset 4, -8
+ 1647              		.cfi_offset 14, -4
+ 451:Src/cli.c     **** 	{
+ 1648              		.loc 1 451 0
+ 1649 0002 62E0     		b	.L154
+ 1650              	.LVL178:
+ 1651              	.L165:
+ 453:Src/cli.c     **** 		{
+ 1652              		.loc 1 453 0
+ 1653 0004 0A2B     		cmp	r3, #10
+ 1654 0006 01D0     		beq	.L155
+ 453:Src/cli.c     **** 		{
+ 1655              		.loc 1 453 0 is_stmt 0 discriminator 1
+ 1656 0008 0D2B     		cmp	r3, #13
+ 1657 000a 29D1     		bne	.L156
+ 1658              	.L155:
+ 455:Src/cli.c     **** 			if((gCmdParamInfo.cmdBuf == gCmdParamInfo.cmdBufTail)||(gCmdParamInfo.cmdBuf[0] == ' ') )
+ 1659              		.loc 1 455 0 is_stmt 1
+ 1660 000c 0022     		movs	r2, #0
+ 1661 000e 324B     		ldr	r3, .L167
+ 1662 0010 1A70     		strb	r2, [r3]
+ 456:Src/cli.c     **** 			{
+ 1663              		.loc 1 456 0
+ 1664 0012 324B     		ldr	r3, .L167+4
+ 1665 0014 5A68     		ldr	r2, [r3, #4]
+ 1666 0016 03F5B073 		add	r3, r3, #352
+ 1667 001a 9A42     		cmp	r2, r3
+ 1668 001c 05D0     		beq	.L157
+ 456:Src/cli.c     **** 			{
+ 1669              		.loc 1 456 0 is_stmt 0 discriminator 1
+ 1670 001e A3F5B073 		sub	r3, r3, #352
+ 1671 0022 93F86031 		ldrb	r3, [r3, #352]	@ zero_extendqisi2
+ 1672 0026 202B     		cmp	r3, #32
+ 1673 0028 04D1     		bne	.L158
+ 1674              	.L157:
+ 458:Src/cli.c     **** 			}
+ 1675              		.loc 1 458 0 is_stmt 1
+ 1676 002a 2C4B     		ldr	r3, .L167+4
+ 1677 002c D868     		ldr	r0, [r3, #12]
+ 1678              	.LVL179:
+ 1679 002e FFF7FEFF 		bl	vOutputString
+ 1680              	.LVL180:
+ 1681 0032 4AE0     		b	.L154
+ 1682              	.LVL181:
+ 1683              	.L158:
+ 462:Src/cli.c     **** 				{
+ 1684              		.loc 1 462 0
+ 1685 0034 531E     		subs	r3, r2, #1
+ 1686 0036 2949     		ldr	r1, .L167+4
+ 1687 0038 4B60     		str	r3, [r1, #4]
+ 1688 003a 12F8013C 		ldrb	r3, [r2, #-1]	@ zero_extendqisi2
+ 1689 003e 202B     		cmp	r3, #32
+ 1690 0040 02D1     		bne	.L160
+ 464:Src/cli.c     **** 				}
+ 1691              		.loc 1 464 0
+ 1692 0042 0023     		movs	r3, #0
+ARM GAS  /tmp/ccfikaZY.s 			page 43
+
+
+ 1693 0044 02F8013C 		strb	r3, [r2, #-1]
+ 1694              	.L160:
+ 466:Src/cli.c     **** 				cli_deinit(); 								//�����ն�
+ 1695              		.loc 1 466 0
+ 1696 0048 254C     		ldr	r4, .L167+8
+ 1697 004a 2046     		mov	r0, r4
+ 1698              	.LVL182:
+ 1699 004c FFF7FEFF 		bl	cli_ProcessCommand
+ 1700              	.LVL183:
+ 467:Src/cli.c     **** 				vOutputString(gCmdParamInfo.outMessage);
+ 1701              		.loc 1 467 0
+ 1702 0050 FFF7FEFF 		bl	cli_deinit
+ 1703              	.LVL184:
+ 468:Src/cli.c     **** 			}
+ 1704              		.loc 1 468 0
+ 1705 0054 A4F5B074 		sub	r4, r4, #352
+ 1706 0058 E068     		ldr	r0, [r4, #12]
+ 1707 005a FFF7FEFF 		bl	vOutputString
+ 1708              	.LVL185:
+ 1709 005e 34E0     		b	.L154
+ 1710              	.LVL186:
+ 1711              	.L156:
+ 473:Src/cli.c     **** 			{
+ 1712              		.loc 1 473 0
+ 1713 0060 A3F10802 		sub	r2, r3, #8
+ 1714 0064 D2B2     		uxtb	r2, r2
+ 1715 0066 172A     		cmp	r2, #23
+ 1716 0068 16D8     		bhi	.L161
+ 475:Src/cli.c     **** 				if(ReadChar == '\b')
+ 1717              		.loc 1 475 0
+ 1718 006a 0021     		movs	r1, #0
+ 1719 006c 1A4A     		ldr	r2, .L167
+ 1720 006e 1170     		strb	r1, [r2]
+ 476:Src/cli.c     **** 				{
+ 1721              		.loc 1 476 0
+ 1722 0070 082B     		cmp	r3, #8
+ 1723 0072 02D1     		bne	.L162
+ 478:Src/cli.c     **** 				}
+ 1724              		.loc 1 478 0
+ 1725 0074 FFF7FEFF 		bl	cli_backspace
+ 1726              	.LVL187:
+ 1727 0078 27E0     		b	.L154
+ 1728              	.LVL188:
+ 1729              	.L162:
+ 480:Src/cli.c     **** 				{
+ 1730              		.loc 1 480 0
+ 1731 007a 1B2B     		cmp	r3, #27
+ 1732 007c 25D1     		bne	.L154
+ 480:Src/cli.c     **** 				{
+ 1733              		.loc 1 480 0 is_stmt 0 discriminator 1
+ 1734 007e 4FF6FF70 		movw	r0, #65535
+ 1735              	.LVL189:
+ 1736 0082 FFF7FEFF 		bl	vGetchar
+ 1737              	.LVL190:
+ 1738 0086 5B28     		cmp	r0, #91
+ 1739 0088 1FD1     		bne	.L154
+ 482:Src/cli.c     **** 				}
+ARM GAS  /tmp/ccfikaZY.s 			page 44
+
+
+ 1740              		.loc 1 482 0 is_stmt 1
+ 1741 008a 4FF6FF70 		movw	r0, #65535
+ 1742 008e FFF7FEFF 		bl	vGetchar
+ 1743              	.LVL191:
+ 1744 0092 FFF7FEFF 		bl	cli_direction
+ 1745              	.LVL192:
+ 1746 0096 18E0     		b	.L154
+ 1747              	.LVL193:
+ 1748              	.L161:
+ 485:Src/cli.c     **** 			{
+ 1749              		.loc 1 485 0
+ 1750 0098 A3F12002 		sub	r2, r3, #32
+ 1751 009c D2B2     		uxtb	r2, r2
+ 1752 009e 5E2A     		cmp	r2, #94
+ 1753 00a0 13D8     		bhi	.L154
+ 487:Src/cli.c     **** 				{
+ 1754              		.loc 1 487 0
+ 1755 00a2 232B     		cmp	r3, #35
+ 1756 00a4 03D0     		beq	.L163
+ 487:Src/cli.c     **** 				{
+ 1757              		.loc 1 487 0 is_stmt 0 discriminator 1
+ 1758 00a6 0C4A     		ldr	r2, .L167
+ 1759 00a8 1278     		ldrb	r2, [r2]	@ zero_extendqisi2
+ 1760 00aa 012A     		cmp	r2, #1
+ 1761 00ac 03D1     		bne	.L164
+ 1762              	.L163:
+ 489:Src/cli.c     **** 				}
+ 1763              		.loc 1 489 0 is_stmt 1
+ 1764 00ae 0122     		movs	r2, #1
+ 1765 00b0 094B     		ldr	r3, .L167
+ 1766 00b2 1A70     		strb	r2, [r3]
+ 1767 00b4 09E0     		b	.L154
+ 1768              	.L164:
+ 491:Src/cli.c     **** 				{
+ 1769              		.loc 1 491 0
+ 1770 00b6 094A     		ldr	r2, .L167+4
+ 1771 00b8 5168     		ldr	r1, [r2, #4]
+ 1772 00ba 02F5B072 		add	r2, r2, #352
+ 1773 00be 8A1A     		subs	r2, r1, r2
+ 1774 00c0 FE2A     		cmp	r2, #254
+ 1775 00c2 02DC     		bgt	.L154
+ 493:Src/cli.c     **** 				}
+ 1776              		.loc 1 493 0
+ 1777 00c4 1846     		mov	r0, r3
+ 1778              	.LVL194:
+ 1779 00c6 FFF7FEFF 		bl	cli_cInput
+ 1780              	.LVL195:
+ 1781              	.L154:
+ 451:Src/cli.c     **** 	{
+ 1782              		.loc 1 451 0
+ 1783 00ca 0020     		movs	r0, #0
+ 1784 00cc FFF7FEFF 		bl	vGetchar
+ 1785              	.LVL196:
+ 1786 00d0 0346     		mov	r3, r0
+ 1787 00d2 0028     		cmp	r0, #0
+ 1788 00d4 96D1     		bne	.L165
+ 498:Src/cli.c     **** 
+ARM GAS  /tmp/ccfikaZY.s 			page 45
+
+
+ 1789              		.loc 1 498 0
+ 1790 00d6 10BD     		pop	{r4, pc}
+ 1791              	.L168:
+ 1792              		.align	2
+ 1793              	.L167:
+ 1794 00d8 00000000 		.word	.LANCHOR3
+ 1795 00dc 00000000 		.word	gCmdParamInfo
+ 1796 00e0 60010000 		.word	gCmdParamInfo+352
+ 1797              		.cfi_endproc
+ 1798              	.LFE82:
+ 1800              		.section	.text.prvUARTCommandConsoleTask,"ax",%progbits
+ 1801              		.align	2
+ 1802              		.global	prvUARTCommandConsoleTask
+ 1803              		.thumb
+ 1804              		.thumb_func
+ 1806              	prvUARTCommandConsoleTask:
+ 1807              	.LFB66:
+  48:Src/cli.c     **** 	CLI_info_init();  //CLI ��ʼ��
+ 1808              		.loc 1 48 0
+ 1809              		.cfi_startproc
+ 1810              		@ Volatile: function does not return.
+ 1811              		@ args = 0, pretend = 0, frame = 0
+ 1812              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1813              	.LVL197:
+ 1814 0000 08B5     		push	{r3, lr}
+ 1815              	.LCFI27:
+ 1816              		.cfi_def_cfa_offset 8
+ 1817              		.cfi_offset 3, -8
+ 1818              		.cfi_offset 14, -4
+  49:Src/cli.c     **** 	while(1)
+ 1819              		.loc 1 49 0
+ 1820 0002 FFF7FEFF 		bl	CLI_info_init
+ 1821              	.LVL198:
+ 1822              	.L170:
+  52:Src/cli.c     **** //		vTaskDelay(30);
+ 1823              		.loc 1 52 0 discriminator 1
+ 1824 0006 FFF7FEFF 		bl	CLI_event_handle
+ 1825              	.LVL199:
+  54:Src/cli.c     **** }
+ 1826              		.loc 1 54 0 discriminator 1
+ 1827 000a FCE7     		b	.L170
+ 1828              		.cfi_endproc
+ 1829              	.LFE66:
+ 1831              		.section	.text.write_cInput,"ax",%progbits
+ 1832              		.align	2
+ 1833              		.global	write_cInput
+ 1834              		.thumb
+ 1835              		.thumb_func
+ 1837              	write_cInput:
+ 1838              	.LFB84:
+ 518:Src/cli.c     **** void  write_cInput(char* Buf, uint32_t Len)  //д������
+ 519:Src/cli.c     **** {
+ 1839              		.loc 1 519 0
+ 1840              		.cfi_startproc
+ 1841              		@ args = 0, pretend = 0, frame = 0
+ 1842              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1843              	.LVL200:
+ARM GAS  /tmp/ccfikaZY.s 			page 46
+
+
+ 1844 0000 70B5     		push	{r4, r5, r6, lr}
+ 1845              	.LCFI28:
+ 1846              		.cfi_def_cfa_offset 16
+ 1847              		.cfi_offset 4, -16
+ 1848              		.cfi_offset 5, -12
+ 1849              		.cfi_offset 6, -8
+ 1850              		.cfi_offset 14, -4
+ 1851 0002 0546     		mov	r5, r0
+ 1852 0004 0C46     		mov	r4, r1
+ 1853              	.LVL201:
+ 1854              	.L177:
+ 520:Src/cli.c     **** 	do
+ 521:Src/cli.c     **** 	  {
+ 522:Src/cli.c     **** 		  if(gUsbParamInfo.write_ptr >= gUsbParamInfo.read_ptr)
+ 1855              		.loc 1 522 0
+ 1856 0006 244B     		ldr	r3, .L180
+ 1857 0008 986E     		ldr	r0, [r3, #104]
+ 1858 000a 5A6E     		ldr	r2, [r3, #100]
+ 1859 000c 9042     		cmp	r0, r2
+ 1860 000e 22D3     		bcc	.L173
+ 523:Src/cli.c     **** 		  {
+ 524:Src/cli.c     **** 			  if(gUsbParamInfo.write_ptr + Len <= (gUsbParamInfo.cHandleBuf + UART_BUFF_LEN))
+ 1861              		.loc 1 524 0
+ 1862 0010 0219     		adds	r2, r0, r4
+ 1863 0012 6433     		adds	r3, r3, #100
+ 1864 0014 9A42     		cmp	r2, r3
+ 1865 0016 0FD8     		bhi	.L174
+ 525:Src/cli.c     **** 			  {
+ 526:Src/cli.c     **** 				  strncpy(gUsbParamInfo.write_ptr,Buf,(uint16_t)Len);
+ 1866              		.loc 1 526 0
+ 1867 0018 2946     		mov	r1, r5
+ 1868 001a A2B2     		uxth	r2, r4
+ 1869 001c FFF7FEFF 		bl	strncpy
+ 1870              	.LVL202:
+ 527:Src/cli.c     **** 				  gUsbParamInfo.write_ptr = gUsbParamInfo.write_ptr + Len;
+ 1871              		.loc 1 527 0
+ 1872 0020 1D4B     		ldr	r3, .L180
+ 1873 0022 9A6E     		ldr	r2, [r3, #104]
+ 1874 0024 2244     		add	r2, r2, r4
+ 1875 0026 9A66     		str	r2, [r3, #104]
+ 528:Src/cli.c     **** 				  Buf = Buf + Len;
+ 1876              		.loc 1 528 0
+ 1877 0028 2544     		add	r5, r5, r4
+ 1878              	.LVL203:
+ 529:Src/cli.c     **** 				  Len = 0;
+ 530:Src/cli.c     **** 				  if(gUsbParamInfo.write_ptr == (gUsbParamInfo.cHandleBuf + UART_BUFF_LEN))
+ 1879              		.loc 1 530 0
+ 1880 002a 6433     		adds	r3, r3, #100
+ 1881 002c 9A42     		cmp	r2, r3
+ 1882 002e 2ED1     		bne	.L178
+ 531:Src/cli.c     **** 				  {
+ 532:Src/cli.c     **** 					  gUsbParamInfo.write_ptr = gUsbParamInfo.cHandleBuf;
+ 1883              		.loc 1 532 0
+ 1884 0030 643B     		subs	r3, r3, #100
+ 1885 0032 9B66     		str	r3, [r3, #104]
+ 529:Src/cli.c     **** 				  Len = 0;
+ 1886              		.loc 1 529 0
+ARM GAS  /tmp/ccfikaZY.s 			page 47
+
+
+ 1887 0034 0024     		movs	r4, #0
+ 1888 0036 2BE0     		b	.L175
+ 1889              	.LVL204:
+ 1890              	.L174:
+ 533:Src/cli.c     **** 				  }
+ 534:Src/cli.c     **** 			  }
+ 535:Src/cli.c     **** 			  else
+ 536:Src/cli.c     **** 			  {
+ 537:Src/cli.c     **** 
+ 538:Src/cli.c     **** 				  strncpy(gUsbParamInfo.write_ptr,Buf,(uint16_t)((gUsbParamInfo.cHandleBuf + UART_BUFF_LEN) - g
+ 1891              		.loc 1 538 0
+ 1892 0038 184E     		ldr	r6, .L180+4
+ 1893 003a 321A     		subs	r2, r6, r0
+ 1894 003c 2946     		mov	r1, r5
+ 1895 003e 92B2     		uxth	r2, r2
+ 1896 0040 FFF7FEFF 		bl	strncpy
+ 1897              	.LVL205:
+ 539:Src/cli.c     **** 				  Buf = Buf + (gUsbParamInfo.cHandleBuf + UART_BUFF_LEN - gUsbParamInfo.write_ptr);
+ 1898              		.loc 1 539 0
+ 1899 0044 A6F16402 		sub	r2, r6, #100
+ 1900 0048 7368     		ldr	r3, [r6, #4]
+ 1901 004a F11A     		subs	r1, r6, r3
+ 1902 004c 0D44     		add	r5, r5, r1
+ 1903              	.LVL206:
+ 540:Src/cli.c     **** 				  Len = Len - (gUsbParamInfo.cHandleBuf + UART_BUFF_LEN - gUsbParamInfo.write_ptr );
+ 1904              		.loc 1 540 0
+ 1905 004e 1C44     		add	r4, r4, r3
+ 1906              	.LVL207:
+ 1907 0050 A41B     		subs	r4, r4, r6
+ 1908              	.LVL208:
+ 541:Src/cli.c     **** 				  gUsbParamInfo.write_ptr = gUsbParamInfo.cHandleBuf;
+ 1909              		.loc 1 541 0
+ 1910 0052 9266     		str	r2, [r2, #104]
+ 1911 0054 1CE0     		b	.L175
+ 1912              	.L173:
+ 542:Src/cli.c     **** 			  }
+ 543:Src/cli.c     **** 		  }
+ 544:Src/cli.c     **** 		  else
+ 545:Src/cli.c     **** 		  {
+ 546:Src/cli.c     **** 			  if(((gUsbParamInfo.read_ptr - 1) - gUsbParamInfo.write_ptr) >= Len)
+ 1913              		.loc 1 546 0
+ 1914 0056 013A     		subs	r2, r2, #1
+ 1915 0058 121A     		subs	r2, r2, r0
+ 1916 005a A242     		cmp	r2, r4
+ 1917 005c 0AD3     		bcc	.L176
+ 547:Src/cli.c     **** 			  {
+ 548:Src/cli.c     **** 				  strncpy(gUsbParamInfo.write_ptr,Buf,(uint16_t)Len);
+ 1918              		.loc 1 548 0
+ 1919 005e 2946     		mov	r1, r5
+ 1920 0060 A2B2     		uxth	r2, r4
+ 1921 0062 FFF7FEFF 		bl	strncpy
+ 1922              	.LVL209:
+ 549:Src/cli.c     **** 				  Buf = Buf + Len;
+ 1923              		.loc 1 549 0
+ 1924 0066 2544     		add	r5, r5, r4
+ 1925              	.LVL210:
+ 550:Src/cli.c     **** 				  gUsbParamInfo.write_ptr = gUsbParamInfo.write_ptr + Len;
+ARM GAS  /tmp/ccfikaZY.s 			page 48
+
+
+ 1926              		.loc 1 550 0
+ 1927 0068 0B4A     		ldr	r2, .L180
+ 1928 006a 936E     		ldr	r3, [r2, #104]
+ 1929 006c 1C44     		add	r4, r4, r3
+ 1930              	.LVL211:
+ 1931 006e 9466     		str	r4, [r2, #104]
+ 1932              	.LVL212:
+ 551:Src/cli.c     **** 				  Len = 0;
+ 1933              		.loc 1 551 0
+ 1934 0070 0024     		movs	r4, #0
+ 1935 0072 0DE0     		b	.L175
+ 1936              	.LVL213:
+ 1937              	.L176:
+ 552:Src/cli.c     **** 			  }
+ 553:Src/cli.c     **** 			  else
+ 554:Src/cli.c     **** 			  {
+ 555:Src/cli.c     **** 				  strncpy(gUsbParamInfo.write_ptr,Buf,(uint16_t)((gUsbParamInfo.read_ptr - 1) - gUsbParamInfo.w
+ 1938              		.loc 1 555 0
+ 1939 0074 2946     		mov	r1, r5
+ 1940 0076 92B2     		uxth	r2, r2
+ 1941 0078 FFF7FEFF 		bl	strncpy
+ 1942              	.LVL214:
+ 556:Src/cli.c     **** 				  Buf = Buf + ((gUsbParamInfo.read_ptr - 1) - gUsbParamInfo.write_ptr);
+ 1943              		.loc 1 556 0
+ 1944 007c 064A     		ldr	r2, .L180
+ 1945 007e 536E     		ldr	r3, [r2, #100]
+ 1946 0080 013B     		subs	r3, r3, #1
+ 1947 0082 916E     		ldr	r1, [r2, #104]
+ 1948 0084 591A     		subs	r1, r3, r1
+ 1949 0086 0D44     		add	r5, r5, r1
+ 1950              	.LVL215:
+ 557:Src/cli.c     **** 				  Len = 0;
+ 558:Src/cli.c     **** 				  gUsbParamInfo.write_ptr = gUsbParamInfo.read_ptr - 1;
+ 1951              		.loc 1 558 0
+ 1952 0088 9366     		str	r3, [r2, #104]
+ 557:Src/cli.c     **** 				  Len = 0;
+ 1953              		.loc 1 557 0
+ 1954 008a 0024     		movs	r4, #0
+ 1955 008c 00E0     		b	.L175
+ 1956              	.L178:
+ 529:Src/cli.c     **** 				  if(gUsbParamInfo.write_ptr == (gUsbParamInfo.cHandleBuf + UART_BUFF_LEN))
+ 1957              		.loc 1 529 0
+ 1958 008e 0024     		movs	r4, #0
+ 1959              	.LVL216:
+ 1960              	.L175:
+ 559:Src/cli.c     **** 			  }
+ 560:Src/cli.c     **** 		  }
+ 561:Src/cli.c     **** 	  }while(Len != 0);
+ 1961              		.loc 1 561 0
+ 1962 0090 002C     		cmp	r4, #0
+ 1963 0092 B8D1     		bne	.L177
+ 562:Src/cli.c     **** }
+ 1964              		.loc 1 562 0
+ 1965 0094 70BD     		pop	{r4, r5, r6, pc}
+ 1966              	.LVL217:
+ 1967              	.L181:
+ 1968 0096 00BF     		.align	2
+ARM GAS  /tmp/ccfikaZY.s 			page 49
+
+
+ 1969              	.L180:
+ 1970 0098 00000000 		.word	gUsbParamInfo
+ 1971 009c 64000000 		.word	gUsbParamInfo+100
+ 1972              		.cfi_endproc
+ 1973              	.LFE84:
+ 1975              		.comm	clilist,1600,4
+ 1976              		.comm	gUsbParamInfo,108,4
+ 1977              		.comm	gCmdParamInfo,1892,4
+ 1978              		.section	.bss.label,"aw",%nobits
+ 1979              		.set	.LANCHOR3,. + 0
+ 1982              	label:
+ 1983 0000 00       		.space	1
+ 1984              		.section	.bss.num.7598,"aw",%nobits
+ 1985              		.align	1
+ 1986              		.set	.LANCHOR1,. + 0
+ 1989              	num.7598:
+ 1990 0000 0000     		.space	2
+ 1991              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 1992              		.align	2
+ 1993              	.LC0:
+ 1994 0000 257300   		.ascii	"%s\000"
+ 1995 0003 00       		.space	1
+ 1996              	.LC1:
+ 1997 0004 0D0A2020 		.ascii	"\015\012        \000"
+ 1997      20202020 
+ 1997      202000
+ 1998 000f 00       		.space	1
+ 1999              	.LC2:
+ 2000 0010 0D0A2049 		.ascii	"\015\012 Instruction standard error, please contact"
+ 2000      6E737472 
+ 2000      75637469 
+ 2000      6F6E2073 
+ 2000      74616E64 
+ 2001 003d 20736F66 		.ascii	" software processing!\000"
+ 2001      74776172 
+ 2001      65207072 
+ 2001      6F636573 
+ 2001      73696E67 
+ 2002 0053 00       		.space	1
+ 2003              	.LC3:
+ 2004 0054 2D616C6C 		.ascii	"-all\000"
+ 2004      00
+ 2005 0059 000000   		.space	3
+ 2006              	.LC4:
+ 2007 005c 0D0A2D2D 		.ascii	"\015\012---ATECMDRESULT--- FAIL\000"
+ 2007      2D415445 
+ 2007      434D4452 
+ 2007      4553554C 
+ 2007      542D2D2D 
+ 2008 0076 0000     		.space	2
+ 2009              	.LC5:
+ 2010 0078 0D0A2D2D 		.ascii	"\015\012---ATECMDRESULT--- OK\000"
+ 2010      2D415445 
+ 2010      434D4452 
+ 2010      4553554C 
+ 2010      542D2D2D 
+ 2011              	.LC6:
+ARM GAS  /tmp/ccfikaZY.s 			page 50
+
+
+ 2012 0090 0D0A436F 		.ascii	"\015\012Command not recognised.  Enter 'help' to vi"
+ 2012      6D6D616E 
+ 2012      64206E6F 
+ 2012      74207265 
+ 2012      636F676E 
+ 2013 00bd 65772061 		.ascii	"ew a list of available commands.\000"
+ 2013      206C6973 
+ 2013      74206F66 
+ 2013      20617661 
+ 2013      696C6162 
+ 2014 00de 0000     		.space	2
+ 2015              	.LC7:
+ 2016 00e0 2000     		.ascii	" \000"
+ 2017 00e2 0000     		.space	2
+ 2018              	.LC8:
+ 2019 00e4 08200800 		.ascii	"\010 \010\000"
+ 2020              	.LC9:
+ 2021 00e8 200800   		.ascii	" \010\000"
+ 2022 00eb 00       		.space	1
+ 2023              	.LC10:
+ 2024 00ec 0D0A6269 		.ascii	"\015\012bitohw :\000"
+ 2024      746F6877 
+ 2024      203A00
+ 2025 00f7 00       		.space	1
+ 2026              	.LC11:
+ 2027 00f8 68656C70 		.ascii	"help\000"
+ 2027      00
+ 2028              		.section	.bss.num.7603,"aw",%nobits
+ 2029              		.align	1
+ 2030              		.set	.LANCHOR2,. + 0
+ 2033              	num.7603:
+ 2034 0000 0000     		.space	2
+ 2035              		.section	.bss.i.7508,"aw",%nobits
+ 2036              		.set	.LANCHOR0,. + 0
+ 2039              	i.7508:
+ 2040 0000 00       		.space	1
+ 2041              		.text
+ 2042              	.Letext0:
+ 2043              		.file 2 "/usr/include/newlib/machine/_default_types.h"
+ 2044              		.file 3 "/usr/include/newlib/sys/_stdint.h"
+ 2045              		.file 4 "/usr/lib/gcc/arm-none-eabi/4.9.3/include/stddef.h"
+ 2046              		.file 5 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_def.h"
+ 2047              		.file 6 "Inc/cli.h"
+ 2048              		.file 7 "Inc/common.h"
+ 2049              		.file 8 "Drivers/CMSIS/Include/core_cm3.h"
+ 2050              		.file 9 "/usr/include/newlib/stdio.h"
+ 2051              		.file 10 "/usr/include/newlib/string.h"
+ 2052              		.file 11 "<built-in>"
+ARM GAS  /tmp/ccfikaZY.s 			page 51
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 cli.c
+     /tmp/ccfikaZY.s:19     .text.cli_deinit:0000000000000000 $t
+     /tmp/ccfikaZY.s:23     .text.cli_deinit:0000000000000000 cli_deinit
+     /tmp/ccfikaZY.s:44     .text.cli_deinit:0000000000000014 $d
+                            *COM*:0000000000000764 gCmdParamInfo
+     /tmp/ccfikaZY.s:49     .text.vOutputString:0000000000000000 $t
+     /tmp/ccfikaZY.s:53     .text.vOutputString:0000000000000000 vOutputString
+     /tmp/ccfikaZY.s:75     .text.vOutputString:000000000000000c $d
+     /tmp/ccfikaZY.s:80     .text.prvDispHelpConfig:0000000000000000 $t
+     /tmp/ccfikaZY.s:84     .text.prvDispHelpConfig:0000000000000000 prvDispHelpConfig
+     /tmp/ccfikaZY.s:120    .text.prvDispHelpConfig:000000000000001c $d
+                            *COM*:0000000000000640 clilist
+     /tmp/ccfikaZY.s:126    .text.cli_write_history_cmd:0000000000000000 $t
+     /tmp/ccfikaZY.s:130    .text.cli_write_history_cmd:0000000000000000 cli_write_history_cmd
+     /tmp/ccfikaZY.s:190    .text.cli_write_history_cmd:0000000000000050 $d
+     /tmp/ccfikaZY.s:197    .text.CLIGetParameter:0000000000000000 $t
+     /tmp/ccfikaZY.s:201    .text.CLIGetParameter:0000000000000000 CLIGetParameter
+     /tmp/ccfikaZY.s:305    .text.CLIGetParameter:0000000000000058 $d
+     /tmp/ccfikaZY.s:310    .text.CLI_Charmatching:0000000000000000 $t
+     /tmp/ccfikaZY.s:314    .text.CLI_Charmatching:0000000000000000 CLI_Charmatching
+     /tmp/ccfikaZY.s:517    .text.CLICommandSeek:0000000000000000 $t
+     /tmp/ccfikaZY.s:521    .text.CLICommandSeek:0000000000000000 CLICommandSeek
+     /tmp/ccfikaZY.s:631    .text.CLICommandSeek:0000000000000074 $d
+     /tmp/ccfikaZY.s:636    .text.cli_format_cmd:0000000000000000 $t
+     /tmp/ccfikaZY.s:640    .text.cli_format_cmd:0000000000000000 cli_format_cmd
+     /tmp/ccfikaZY.s:786    .text.cli_format_cmd:00000000000000e4 $d
+     /tmp/ccfikaZY.s:792    .text.cli_ProcessCommand:0000000000000000 $t
+     /tmp/ccfikaZY.s:796    .text.cli_ProcessCommand:0000000000000000 cli_ProcessCommand
+     /tmp/ccfikaZY.s:882    .text.cli_ProcessCommand:0000000000000058 $d
+     /tmp/ccfikaZY.s:890    .text.vOutputChar:0000000000000000 $t
+     /tmp/ccfikaZY.s:894    .text.vOutputChar:0000000000000000 vOutputChar
+     /tmp/ccfikaZY.s:914    .text.cli_backspace:0000000000000000 $t
+     /tmp/ccfikaZY.s:918    .text.cli_backspace:0000000000000000 cli_backspace
+     /tmp/ccfikaZY.s:1041   .text.cli_backspace:0000000000000094 $d
+     /tmp/ccfikaZY.s:1049   .text.cli_read_history_cmd:0000000000000000 $t
+     /tmp/ccfikaZY.s:1053   .text.cli_read_history_cmd:0000000000000000 cli_read_history_cmd
+     /tmp/ccfikaZY.s:1172   .text.cli_read_history_cmd:00000000000000ac $d
+     /tmp/ccfikaZY.s:1179   .text.cli_direction:0000000000000000 $t
+     /tmp/ccfikaZY.s:1183   .text.cli_direction:0000000000000000 cli_direction
+     /tmp/ccfikaZY.s:1202   .text.cli_direction:000000000000000c $d
+     /tmp/ccfikaZY.s:1206   .text.cli_direction:0000000000000010 $t
+     /tmp/ccfikaZY.s:1274   .text.cli_direction:000000000000006c $d
+     /tmp/ccfikaZY.s:1279   .text.cli_cInput:0000000000000000 $t
+     /tmp/ccfikaZY.s:1283   .text.cli_cInput:0000000000000000 cli_cInput
+     /tmp/ccfikaZY.s:1391   .text.cli_cInput:0000000000000078 $d
+     /tmp/ccfikaZY.s:1397   .text.CLIParameterAdd:0000000000000000 $t
+     /tmp/ccfikaZY.s:1402   .text.CLIParameterAdd:0000000000000000 CLIParameterAdd
+     /tmp/ccfikaZY.s:1437   .text.CLIParameterAdd:0000000000000020 $d
+     /tmp/ccfikaZY.s:1443   .text.CLICommandAdd:0000000000000000 $t
+     /tmp/ccfikaZY.s:1448   .text.CLICommandAdd:0000000000000000 CLICommandAdd
+     /tmp/ccfikaZY.s:1482   .text.CLICommandAdd:0000000000000020 $d
+     /tmp/ccfikaZY.s:1488   .text.CLI_info_init:0000000000000000 $t
+     /tmp/ccfikaZY.s:1493   .text.CLI_info_init:0000000000000000 CLI_info_init
+     /tmp/ccfikaZY.s:1537   .text.CLI_info_init:0000000000000034 $d
+                            *COM*:000000000000006c gUsbParamInfo
+     /tmp/ccfikaZY.s:1547   .text.read_cInput:0000000000000000 $t
+ARM GAS  /tmp/ccfikaZY.s 			page 52
+
+
+     /tmp/ccfikaZY.s:1552   .text.read_cInput:0000000000000000 read_cInput
+     /tmp/ccfikaZY.s:1601   .text.read_cInput:000000000000002c $d
+     /tmp/ccfikaZY.s:1606   .text.vGetchar:0000000000000000 $t
+     /tmp/ccfikaZY.s:1611   .text.vGetchar:0000000000000000 vGetchar
+     /tmp/ccfikaZY.s:1632   .text.CLI_event_handle:0000000000000000 $t
+     /tmp/ccfikaZY.s:1637   .text.CLI_event_handle:0000000000000000 CLI_event_handle
+     /tmp/ccfikaZY.s:1794   .text.CLI_event_handle:00000000000000d8 $d
+     /tmp/ccfikaZY.s:1801   .text.prvUARTCommandConsoleTask:0000000000000000 $t
+     /tmp/ccfikaZY.s:1806   .text.prvUARTCommandConsoleTask:0000000000000000 prvUARTCommandConsoleTask
+     /tmp/ccfikaZY.s:1832   .text.write_cInput:0000000000000000 $t
+     /tmp/ccfikaZY.s:1837   .text.write_cInput:0000000000000000 write_cInput
+     /tmp/ccfikaZY.s:1970   .text.write_cInput:0000000000000098 $d
+     /tmp/ccfikaZY.s:1982   .bss.label:0000000000000000 label
+     /tmp/ccfikaZY.s:1983   .bss.label:0000000000000000 $d
+     /tmp/ccfikaZY.s:1985   .bss.num.7598:0000000000000000 $d
+     /tmp/ccfikaZY.s:1989   .bss.num.7598:0000000000000000 num.7598
+     /tmp/ccfikaZY.s:1992   .rodata.str1.4:0000000000000000 $d
+     /tmp/ccfikaZY.s:2029   .bss.num.7603:0000000000000000 $d
+     /tmp/ccfikaZY.s:2033   .bss.num.7603:0000000000000000 num.7603
+     /tmp/ccfikaZY.s:2039   .bss.i.7508:0000000000000000 i.7508
+     /tmp/ccfikaZY.s:2040   .bss.i.7508:0000000000000000 $d
+                     .debug_frame:0000000000000010 $d
+
+UNDEFINED SYMBOLS
+printf
+strcmp
+strcpy
+strchr
+strncmp
+strlen
+strncpy
+putchar
+memcpy
+memset

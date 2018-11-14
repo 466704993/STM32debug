@@ -1,0 +1,370 @@
+ARM GAS  /tmp/ccBTgKz9.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"common.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text._com_int_pow,"ax",%progbits
+  19              		.align	2
+  20              		.thumb
+  21              		.thumb_func
+  23              	_com_int_pow:
+  24              	.LFB63:
+  25              		.file 1 "Src/common.c"
+   1:Src/common.c  **** /*
+   2:Src/common.c  ****  * common.c
+   3:Src/common.c  ****  *
+   4:Src/common.c  ****  *  Created on: Nov 14, 2018
+   5:Src/common.c  ****  *      Author: bitohw03
+   6:Src/common.c  ****  */
+   7:Src/common.c  **** 
+   8:Src/common.c  **** #include <stdarg.h>  //for va_list ap
+   9:Src/common.c  **** #include <stdio.h>   //for printf
+  10:Src/common.c  **** #include <string.h>  //for strlen
+  11:Src/common.c  **** #include <stdlib.h>  //for atoi
+  12:Src/common.c  **** #include <math.h>
+  13:Src/common.c  **** #include "common.h"
+  14:Src/common.c  **** 
+  15:Src/common.c  **** static uint16_t _com_int_pow(uint8_t m, uint8_t n)
+  16:Src/common.c  **** {
+  26              		.loc 1 16 0
+  27              		.cfi_startproc
+  28              		@ args = 0, pretend = 0, frame = 0
+  29              		@ frame_needed = 0, uses_anonymous_args = 0
+  30              		@ link register save eliminated.
+  31              	.LVL0:
+  32 0000 0246     		mov	r2, r0
+  33              	.LVL1:
+  17:Src/common.c  **** 	uint8_t i = 0;
+  18:Src/common.c  **** 	uint16_t result = 1;
+  34              		.loc 1 18 0
+  35 0002 0120     		movs	r0, #1
+  36              	.LVL2:
+  19:Src/common.c  **** 
+  20:Src/common.c  **** 	for ( i = 0; i < n; i++)
+  37              		.loc 1 20 0
+  38 0004 0023     		movs	r3, #0
+ARM GAS  /tmp/ccBTgKz9.s 			page 2
+
+
+  39 0006 04E0     		b	.L2
+  40              	.LVL3:
+  41              	.L3:
+  21:Src/common.c  **** 	{
+  22:Src/common.c  **** 		result *= m;
+  42              		.loc 1 22 0 discriminator 3
+  43 0008 02FB00F0 		mul	r0, r2, r0
+  44              	.LVL4:
+  45 000c 80B2     		uxth	r0, r0
+  46              	.LVL5:
+  20:Src/common.c  **** 	{
+  47              		.loc 1 20 0 discriminator 3
+  48 000e 0133     		adds	r3, r3, #1
+  49              	.LVL6:
+  50 0010 DBB2     		uxtb	r3, r3
+  51              	.LVL7:
+  52              	.L2:
+  20:Src/common.c  **** 	{
+  53              		.loc 1 20 0 is_stmt 0 discriminator 1
+  54 0012 8B42     		cmp	r3, r1
+  55 0014 F8D3     		bcc	.L3
+  23:Src/common.c  **** 	}
+  24:Src/common.c  **** 	return result;
+  25:Src/common.c  **** }
+  56              		.loc 1 25 0 is_stmt 1
+  57 0016 7047     		bx	lr
+  58              		.cfi_endproc
+  59              	.LFE63:
+  61              		.section	.text.com_str_to_int16,"ax",%progbits
+  62              		.align	2
+  63              		.global	com_str_to_int16
+  64              		.thumb
+  65              		.thumb_func
+  67              	com_str_to_int16:
+  68              	.LFB64:
+  26:Src/common.c  **** 
+  27:Src/common.c  **** int16_t com_str_to_int16(char *str)
+  28:Src/common.c  **** {
+  69              		.loc 1 28 0
+  70              		.cfi_startproc
+  71              		@ args = 0, pretend = 0, frame = 8
+  72              		@ frame_needed = 0, uses_anonymous_args = 0
+  73              	.LVL8:
+  74 0000 2DE9F047 		push	{r4, r5, r6, r7, r8, r9, r10, lr}
+  75              	.LCFI0:
+  76              		.cfi_def_cfa_offset 32
+  77              		.cfi_offset 4, -32
+  78              		.cfi_offset 5, -28
+  79              		.cfi_offset 6, -24
+  80              		.cfi_offset 7, -20
+  81              		.cfi_offset 8, -16
+  82              		.cfi_offset 9, -12
+  83              		.cfi_offset 10, -8
+  84              		.cfi_offset 14, -4
+  85 0004 82B0     		sub	sp, sp, #8
+  86              	.LCFI1:
+  87              		.cfi_def_cfa_offset 40
+ARM GAS  /tmp/ccBTgKz9.s 			page 3
+
+
+  88 0006 0746     		mov	r7, r0
+  89              	.LVL9:
+  29:Src/common.c  **** 	char *ptr = str,tmp[5];
+  30:Src/common.c  **** 	uint8_t  i = 0, len = 0;
+  31:Src/common.c  **** 	int16_t  temp = 0;
+  32:Src/common.c  **** 	bool IsHex = false;
+  33:Src/common.c  **** 
+  34:Src/common.c  **** 	memset(tmp,'\0',5);
+  90              		.loc 1 34 0
+  91 0008 0023     		movs	r3, #0
+  92 000a 0093     		str	r3, [sp]
+  93 000c 8DF80430 		strb	r3, [sp, #4]
+  35:Src/common.c  **** 
+  36:Src/common.c  **** 	if ((strchr(str,'x') != NULL) || (strchr(str,'X') != NULL))
+  94              		.loc 1 36 0
+  95 0010 7821     		movs	r1, #120
+  96 0012 FFF7FEFF 		bl	strchr
+  97              	.LVL10:
+  98 0016 20B9     		cbnz	r0, .L5
+  99              		.loc 1 36 0 is_stmt 0 discriminator 1
+ 100 0018 3846     		mov	r0, r7
+ 101 001a 5821     		movs	r1, #88
+ 102 001c FFF7FEFF 		bl	strchr
+ 103              	.LVL11:
+ 104 0020 78B1     		cbz	r0, .L16
+ 105              	.L5:
+ 106              	.LVL12:
+  37:Src/common.c  **** 	{
+  38:Src/common.c  **** 		IsHex = true;
+  39:Src/common.c  **** 		ptr += 2;
+ 107              		.loc 1 39 0 is_stmt 1
+ 108 0022 0237     		adds	r7, r7, #2
+ 109              	.LVL13:
+  40:Src/common.c  **** 		for (i = 0; i < 4 ; i++)
+ 110              		.loc 1 40 0
+ 111 0024 0023     		movs	r3, #0
+ 112 0026 07E0     		b	.L7
+ 113              	.LVL14:
+ 114              	.L8:
+  41:Src/common.c  **** 		{
+  42:Src/common.c  **** 			tmp[i] = *ptr;
+ 115              		.loc 1 42 0 discriminator 3
+ 116 0028 17F8011B 		ldrb	r1, [r7], #1	@ zero_extendqisi2
+ 117              	.LVL15:
+ 118 002c 02AA     		add	r2, sp, #8
+ 119 002e 1A44     		add	r2, r2, r3
+ 120 0030 02F8081C 		strb	r1, [r2, #-8]
+ 121              	.LVL16:
+  40:Src/common.c  **** 		for (i = 0; i < 4 ; i++)
+ 122              		.loc 1 40 0 discriminator 3
+ 123 0034 0133     		adds	r3, r3, #1
+ 124              	.LVL17:
+ 125 0036 DBB2     		uxtb	r3, r3
+ 126              	.LVL18:
+ 127              	.L7:
+  40:Src/common.c  **** 		for (i = 0; i < 4 ; i++)
+ 128              		.loc 1 40 0 is_stmt 0 discriminator 1
+ARM GAS  /tmp/ccBTgKz9.s 			page 4
+
+
+ 129 0038 032B     		cmp	r3, #3
+ 130 003a F5D9     		bls	.L8
+  38:Src/common.c  **** 		ptr += 2;
+ 131              		.loc 1 38 0 is_stmt 1
+ 132 003c 0123     		movs	r3, #1
+ 133              	.LVL19:
+  43:Src/common.c  **** 			ptr++;
+  44:Src/common.c  **** 		}
+  45:Src/common.c  **** 		ptr = tmp;
+ 134              		.loc 1 45 0
+ 135 003e 6F46     		mov	r7, sp
+ 136              	.LVL20:
+ 137 0040 00E0     		b	.L6
+ 138              	.LVL21:
+ 139              	.L16:
+  32:Src/common.c  **** 
+ 140              		.loc 1 32 0
+ 141 0042 0023     		movs	r3, #0
+ 142              	.LVL22:
+ 143              	.L6:
+  46:Src/common.c  **** 	}
+  47:Src/common.c  **** 	else
+  48:Src/common.c  **** 	{
+  49:Src/common.c  **** 		ptr = str;
+  50:Src/common.c  **** 	}
+  51:Src/common.c  **** 
+  52:Src/common.c  **** 	if (IsHex)
+ 144              		.loc 1 52 0
+ 145 0044 002B     		cmp	r3, #0
+ 146 0046 47D0     		beq	.L9
+  53:Src/common.c  **** 	{
+  54:Src/common.c  **** 		len = strlen(ptr);
+ 147              		.loc 1 54 0
+ 148 0048 3846     		mov	r0, r7
+ 149 004a FFF7FEFF 		bl	strlen
+ 150              	.LVL23:
+ 151 004e 5FFA80F8 		uxtb	r8, r0
+ 152              	.LVL24:
+  31:Src/common.c  **** 	bool IsHex = false;
+ 153              		.loc 1 31 0
+ 154 0052 4FF0000A 		mov	r10, #0
+  55:Src/common.c  **** 		for (i = 0; i < len; i++)
+ 155              		.loc 1 55 0
+ 156 0056 5646     		mov	r6, r10
+ 157 0058 3BE0     		b	.L10
+ 158              	.LVL25:
+ 159              	.L14:
+  56:Src/common.c  **** 		{
+  57:Src/common.c  **** 			if (*ptr >= '0' && *ptr <= '9')
+ 160              		.loc 1 57 0
+ 161 005a 3878     		ldrb	r0, [r7]	@ zero_extendqisi2
+ 162 005c A0F13003 		sub	r3, r0, #48
+ 163 0060 DBB2     		uxtb	r3, r3
+ 164 0062 092B     		cmp	r3, #9
+ 165 0064 0DD8     		bhi	.L11
+  58:Src/common.c  **** 			{
+  59:Src/common.c  **** 				temp += (*ptr-'0') * _com_int_pow(16,len-1-i);
+ARM GAS  /tmp/ccBTgKz9.s 			page 5
+
+
+ 166              		.loc 1 59 0
+ 167 0066 A0F13004 		sub	r4, r0, #48
+ 168 006a C6EB0801 		rsb	r1, r6, r8
+ 169 006e 0139     		subs	r1, r1, #1
+ 170 0070 1020     		movs	r0, #16
+ 171 0072 C9B2     		uxtb	r1, r1
+ 172 0074 FFF7FEFF 		bl	_com_int_pow
+ 173              	.LVL26:
+ 174 0078 00FB04A0 		mla	r0, r0, r4, r10
+ 175 007c 1FFA80FA 		uxth	r10, r0
+ 176              	.LVL27:
+ 177 0080 24E0     		b	.L12
+ 178              	.L11:
+  60:Src/common.c  **** 			}
+  61:Src/common.c  **** 			else if (*ptr >= 'a' && *ptr <= 'f')
+ 179              		.loc 1 61 0
+ 180 0082 A0F16103 		sub	r3, r0, #97
+ 181 0086 DBB2     		uxtb	r3, r3
+ 182 0088 052B     		cmp	r3, #5
+ 183 008a 0DD8     		bhi	.L13
+  62:Src/common.c  **** 			{
+  63:Src/common.c  **** 				temp += (*ptr-'a'+ 10) * _com_int_pow(16,len-1-i);
+ 184              		.loc 1 63 0
+ 185 008c A0F15705 		sub	r5, r0, #87
+ 186 0090 C6EB0801 		rsb	r1, r6, r8
+ 187 0094 0139     		subs	r1, r1, #1
+ 188 0096 1020     		movs	r0, #16
+ 189 0098 C9B2     		uxtb	r1, r1
+ 190 009a FFF7FEFF 		bl	_com_int_pow
+ 191              	.LVL28:
+ 192 009e 00FB05A0 		mla	r0, r0, r5, r10
+ 193 00a2 1FFA80FA 		uxth	r10, r0
+ 194              	.LVL29:
+ 195 00a6 11E0     		b	.L12
+ 196              	.L13:
+  64:Src/common.c  **** 			}
+  65:Src/common.c  **** 			else if (*ptr >= 'A' && *ptr <= 'F')
+ 197              		.loc 1 65 0
+ 198 00a8 A0F14103 		sub	r3, r0, #65
+ 199 00ac DBB2     		uxtb	r3, r3
+ 200 00ae 052B     		cmp	r3, #5
+ 201 00b0 0CD8     		bhi	.L12
+  66:Src/common.c  **** 			{
+  67:Src/common.c  **** 				temp += (*ptr-'A' + 10) * _com_int_pow(16,len-1-i);
+ 202              		.loc 1 67 0
+ 203 00b2 A0F13709 		sub	r9, r0, #55
+ 204 00b6 C6EB0801 		rsb	r1, r6, r8
+ 205 00ba 0139     		subs	r1, r1, #1
+ 206 00bc 1020     		movs	r0, #16
+ 207 00be C9B2     		uxtb	r1, r1
+ 208 00c0 FFF7FEFF 		bl	_com_int_pow
+ 209              	.LVL30:
+ 210 00c4 00FB09A0 		mla	r0, r0, r9, r10
+ 211 00c8 1FFA80FA 		uxth	r10, r0
+ 212              	.LVL31:
+ 213              	.L12:
+  68:Src/common.c  **** 			}
+ARM GAS  /tmp/ccBTgKz9.s 			page 6
+
+
+  69:Src/common.c  **** 			ptr++;
+ 214              		.loc 1 69 0 discriminator 2
+ 215 00cc 0137     		adds	r7, r7, #1
+ 216              	.LVL32:
+  55:Src/common.c  **** 		{
+ 217              		.loc 1 55 0 discriminator 2
+ 218 00ce 0136     		adds	r6, r6, #1
+ 219              	.LVL33:
+ 220 00d0 F6B2     		uxtb	r6, r6
+ 221              	.LVL34:
+ 222              	.L10:
+  55:Src/common.c  **** 		{
+ 223              		.loc 1 55 0 is_stmt 0 discriminator 1
+ 224 00d2 4645     		cmp	r6, r8
+ 225 00d4 C1D3     		bcc	.L14
+ 226 00d6 04E0     		b	.L15
+ 227              	.LVL35:
+ 228              	.L9:
+  70:Src/common.c  **** 		}
+  71:Src/common.c  **** 	}
+  72:Src/common.c  **** 	else
+  73:Src/common.c  **** 	{
+  74:Src/common.c  **** 		temp = (int16_t)atoi(ptr);
+ 229              		.loc 1 74 0 is_stmt 1
+ 230 00d8 3846     		mov	r0, r7
+ 231 00da FFF7FEFF 		bl	atoi
+ 232              	.LVL36:
+ 233 00de 1FFA80FA 		uxth	r10, r0
+ 234              	.LVL37:
+ 235              	.L15:
+  75:Src/common.c  **** 	}
+  76:Src/common.c  **** 
+  77:Src/common.c  **** 	return temp;
+  78:Src/common.c  **** }
+ 236              		.loc 1 78 0
+ 237 00e2 0FFA8AF0 		sxth	r0, r10
+ 238 00e6 02B0     		add	sp, sp, #8
+ 239              	.LCFI2:
+ 240              		.cfi_def_cfa_offset 32
+ 241              		@ sp needed
+ 242 00e8 BDE8F087 		pop	{r4, r5, r6, r7, r8, r9, r10, pc}
+ 243              		.cfi_endproc
+ 244              	.LFE64:
+ 246              		.text
+ 247              	.Letext0:
+ 248              		.file 2 "/usr/include/newlib/machine/_default_types.h"
+ 249              		.file 3 "/usr/lib/gcc/arm-none-eabi/4.9.3/include/stddef.h"
+ 250              		.file 4 "/usr/include/newlib/sys/_stdint.h"
+ 251              		.file 5 "Inc/common.h"
+ 252              		.file 6 "/usr/include/newlib/string.h"
+ 253              		.file 7 "Drivers/CMSIS/Include/core_cm3.h"
+ 254              		.file 8 "/usr/include/newlib/stdlib.h"
+ARM GAS  /tmp/ccBTgKz9.s 			page 7
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 common.c
+     /tmp/ccBTgKz9.s:19     .text._com_int_pow:0000000000000000 $t
+     /tmp/ccBTgKz9.s:23     .text._com_int_pow:0000000000000000 _com_int_pow
+     /tmp/ccBTgKz9.s:62     .text.com_str_to_int16:0000000000000000 $t
+     /tmp/ccBTgKz9.s:67     .text.com_str_to_int16:0000000000000000 com_str_to_int16
+                     .debug_frame:0000000000000010 $d
+
+UNDEFINED SYMBOLS
+strchr
+strlen
+atoi
