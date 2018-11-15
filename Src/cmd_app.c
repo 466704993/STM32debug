@@ -10,9 +10,8 @@
 #include <stdio.h>
 #include "stm32f1xx_hal.h"
 #include "common.h"
-//#include "cli.c"
 #include "cmd_app.h"
-
+#include "config.h"
 
 
 static HAL_StatusTypeDef prvDispOprwConfig(int argc, char** argv)
@@ -71,11 +70,11 @@ static HAL_StatusTypeDef prvDispOprwConfig(int argc, char** argv)
 
 	if(i2c_data.rwType == READ_CMD)
 	{
-	//		result = smb_read_multi_byte( i2c_data.devAddr, i2c_data.offsetAddr,  i2c_data.readData, i2c_data.rwByteNum);
+			result = HAL_I2C_Mem_Read(&hi2c1, i2c_data.devAddr, i2c_data.offsetAddr, I2C_MEMADD_SIZE_8BIT, i2c_data.readData, i2c_data.rwByteNum,1000);
 	}
 	else
 	{
-	//		result = smb_write_multi_byte( i2c_data.devAddr, i2c_data.offsetAddr,  i2c_data.readData, i2c_data.rwByteNum);
+			result = HAL_I2C_Mem_Write(&hi2c1, i2c_data.devAddr, i2c_data.offsetAddr, I2C_MEMADD_SIZE_8BIT, i2c_data.readData, i2c_data.rwByteNum,1000);
 	}
 
 	if(result == HAL_OK)
@@ -88,10 +87,68 @@ static HAL_StatusTypeDef prvDispOprwConfig(int argc, char** argv)
 	}
 	return result;
 }
+/*
+ *
+ * //获取 X/Y/Z 磁力计值
+extern void getmag(void);
+
+//读取DMP FIFO
+extern void readdmp(void);
+
+//获取加速度、角速度
+extern void getAcc_gyro(void);
+ */
+static HAL_StatusTypeDef prvDispmpu9250Config(int argc, char** argv)
+{
+	uint8_t result = HAL_ERROR;
+	if(!strcmp(argv[1],"init"))
+	{
+		Init_MPU9250_With_DMP();//初始化MPU9250
+	}
+	else if(!strcmp(argv[1],"getmag"))
+	{
+		getmag();
+		printf("\r\n mag_x: %d mag_y: %d mag_z: %d ",(int)(mag[0]*100),(int)(mag[1]*100),(int)(mag[2])*100);
+	}
+	else if(!strcmp(argv[1],"getAcc_gyro"))
+	{
+		getAcc_gyro();
+		printf("\r\n acc_x: %d acc_y: %d acc_z: %d",(int)(accelf[0]*100),(int)(accelf[1]*100),(int)(accelf[2]*100));
+		printf("\r\n gyro_x: %d gyro_y: %d gyro_z: %d",(int)(gyrof[0]*100),(int)(gyrof[1]*100),(int)(gyrof[2]*100));
+	}
+	else if(!strcmp(argv[1],"pose"))
+	{
+		uint16_t fifo_count = 0;
+		while(1)//使用循环是为了等待DMP转换完成
+		{
+			fifo_count = MPU9250_getFIFOCount();//读取FIFO计数
+
+			if(fifo_count >= 0x0200)//如果FIFO值>0x0200，此时DMP的结果错误，直接复位FIFO
+			{
+				MPU9250_resetFIFO();
+			}
+			else
+			{
+
+				if(fifo_count >= 0x2a)//如果FIFO值 > 0x2a,此时DMP转换完成并且数值正常
+				{
+					readdmp(); //首先要读取DMP FIFO，读取之后才能进行计算姿态的操作
+					MPU9250_resetFIFO();
+					getyawpitchroll();//计算并且获取yaw、pitch、roll，结果保存在yprf[3]数组中
+					printf("\r\n yaw : %d pitch : %d  roll : %d",(int)(yprf[0]*100),(int)(yprf[1]*100),(int)(yprf[2]*100));
+					break;//转换并且计算完成之后退出循环
+				}
+			}
+		}
+	}
+	return result;
+}
 
 void cmd_add_Init(void)
 {
-//	CLICommandAdd("[opr|opw] &baseAddr &OffAddr #ParmNum(0~0xff)" \
-//					  ,prvDispOprwConfig);
+	CLICommandAdd("[opr|opw] &baseAddr &OffAddr #ParmNum(0~0xff)" \
+					  ,prvDispOprwConfig);
+	CLICommandAdd("mpu9250 [init|getmag|getAcc_gyro|pose]" \
+					  ,prvDispmpu9250Config);
 }
 

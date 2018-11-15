@@ -11,6 +11,7 @@
 #include <stdlib.h>  //for atoi
 #include <math.h>
 #include "common.h"
+#include "config.h"
 
 static uint16_t _com_int_pow(uint8_t m, uint8_t n)
 {

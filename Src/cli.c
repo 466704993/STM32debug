@@ -12,11 +12,11 @@
 #include <stdarg.h>  //for va_list ap
 #include "cli.h"
 #include "common.h"
-
+#include "config.h"
 
 #define UART_BUFF_LEN 100
 
-static bit label = false;
+static Bit label = false;
 GET_CMD_PARAM_INFO_T gCmdParamInfo;
 
 struct
@@ -47,6 +47,7 @@ char vGetchar(uint16_t time)
 void prvUARTCommandConsoleTask(void const *pvParameters)
 {
 	CLI_info_init();  //CLI ��ʼ��
+	cmd_add_Init();
 	while(1)
 	{
 		CLI_event_handle(); //CLI�ַ�����poll
@@ -391,7 +392,18 @@ static void cli_ProcessCommand(char *str)
 	command = CLICommandSeek(str);  //�ڱ��в��Ҵ�����
 	if(command != NULL)
 	{
-		ret = command->p(gCmdParamInfo.argc,gCmdParamInfo.argv); //ִ���ַ���������
+		while(command != NULL)
+		{
+			ret = command->p(gCmdParamInfo.argc,gCmdParamInfo.argv); //ִ���ַ���������
+			if(strstr(str,"-t") == NULL)
+			{
+				break;
+			}
+			if( vGetchar(0) != 0)
+			{
+				break;
+			}
+		}
 		if(HAL_OK != ret)
 		{
 			vOutputString("\r\n---ATECMDRESULT--- FAIL");
@@ -422,7 +434,7 @@ void CLI_info_init(void)	//CLI��ʼ������
 	gUsbParamInfo.write_ptr= gUsbParamInfo.cHandleBuf;
 	memset(&gCmdParamInfo,'\0',sizeof(gCmdParamInfo));
 	memset(&clilist,'\0',sizeof(clilist));
-	gCmdParamInfo.outMessage = "\r\nbitohw :";
+	gCmdParamInfo.outMessage = "\r\nbitohw : ";
 	cli_deinit();
 	CLICommandAdd("help",prvDispHelpConfig);  //��Ӱ�������
 }

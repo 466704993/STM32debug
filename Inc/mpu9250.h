@@ -379,7 +379,7 @@
 extern float q[4]; /* 四元数*/
 extern float gyrof[3];  /* X/Y/Z 角速度*/
 extern float accelf[3]; /* X/Y/Z 加速度 */
-extern float yprf[3];   /* yaw/pitch/roll*/
+extern float yprf[3];   /*姿态 yaw/pitch/roll*/
 extern float mag[3];
 
 void Init_MPU9250_With_DMP(void);

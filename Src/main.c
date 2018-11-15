@@ -50,7 +50,7 @@
 #include "main.h"
 #include "stm32f1xx_hal.h"
 #include "usb_device.h"
-#include "cli.h"
+#include "config.h"
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -115,6 +115,7 @@ int main(void)
   MX_I2C2_Init();
   MX_USART1_UART_Init();
   MX_USB_DEVICE_Init();
+//
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */

@@ -4,7 +4,7 @@
 #include "math.h"
 #include "mpu9250.h"
 
-extern I2C_HandleTypeDef hi2c1;
+
 
 float q[4]; //  鍥涘厓鏁�
 float gyrof[3];  //  X/Y/Z 瑙掗�熷害
