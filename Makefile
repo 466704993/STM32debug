@@ -107,9 +107,9 @@ CPU = -mcpu=cortex-m3
 # NONE for Cortex-M0/M0+/M3
 
 # float-abi
-
-
 # mcu
+FPU += -mfloat-abi=soft -u _printf_float
+
 MCU = $(CPU) -mthumb $(FPU) $(FLOAT-ABI)
 
 # macros for gcc
@@ -146,6 +146,7 @@ CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-
 ifeq ($(DEBUG), 1)
 CFLAGS += -g -gdwarf-2
 endif
+
 
 
 # Generate dependency information

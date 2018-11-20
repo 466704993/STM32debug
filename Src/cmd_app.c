@@ -108,7 +108,7 @@ static HAL_StatusTypeDef prvDispmpu9250Config(int argc, char** argv)
 	else if(!strcmp(argv[1],"getmag"))
 	{
 		getmag();
-		printf("\r\n mag_x: %d mag_y: %d mag_z: %d ",(int)(mag[0]*100),(int)(mag[1]*100),(int)(mag[2])*100);
+		printf("\r\n mag_x: %d mag_y: %d mag_z: %d ",(int)(mag[0]),(int)(mag[1]),(int)(mag[2]));
 	}
 	else if(!strcmp(argv[1],"getAcc_gyro"))
 	{
@@ -135,7 +135,7 @@ static HAL_StatusTypeDef prvDispmpu9250Config(int argc, char** argv)
 					readdmp(); //首先要读取DMP FIFO，读取之后才能进行计算姿态的操作
 					MPU9250_resetFIFO();
 					getyawpitchroll();//计算并且获取yaw、pitch、roll，结果保存在yprf[3]数组中
-					printf("\r\n yaw : %d pitch : %d  roll : %d",(int)(yprf[0]*100),(int)(yprf[1]*100),(int)(yprf[2]*100));
+					printf("\r\n yaw : %f pitch : %f  roll : %f",(yprf[0]),(yprf[1]),(yprf[2]));
 					break;//转换并且计算完成之后退出循环
 				}
 			}
